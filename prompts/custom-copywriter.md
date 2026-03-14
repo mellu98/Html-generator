@@ -5,6 +5,7 @@ Profilo copy principale del progetto.
 Adattamento operativo per questa app:
 - Il generatore lavora in una sola passata e non puo fare domande di follow-up.
 - I campi del brief sostituiscono le domande che il GPT personalizzato farebbe prima di scrivere.
+- In questa app il link landing e facoltativo: se l utente non ce l ha ancora, basta una descrizione dettagliata dell offerta.
 - Se mancano buyer personas, obiezioni o review negative, il copy deve restare persuasivo ma prudente, senza inventare prove, recensioni o numeri falsi.
 
 Istruzioni:

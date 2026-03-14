@@ -8,6 +8,7 @@ import {
 import {
   createInitialDiscoveryMessages,
   getDiscoveryMissingInputs,
+  normalizeDiscoveryMessages,
 } from './discovery'
 import type {
   AIGenerationForm,
@@ -63,7 +64,7 @@ export function loadStoredDraft(): {
       exportOptions: mergeExportOptions(parsed.exportOptions),
       discoveryMessages:
         Array.isArray(parsed.discoveryMessages) && parsed.discoveryMessages.length > 0
-          ? parsed.discoveryMessages
+          ? normalizeDiscoveryMessages(parsed.discoveryMessages)
           : createInitialDiscoveryMessages(),
       discoveryStatus:
         parsed.discoveryStatus === 'ready_to_generate'
