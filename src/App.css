@@ -6,18 +6,22 @@
 
 .workspace {
   display: grid;
+  grid-template-columns: minmax(0, 980px);
   gap: 20px;
   align-items: start;
+  justify-content: center;
 }
 
 .workspace--with-preview {
-  grid-template-columns: 430px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  justify-content: stretch;
 }
 
 .editor-column,
 .preview-column {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .panel-card {
@@ -146,6 +150,10 @@
   align-items: start;
 }
 
+.panel-card__header > div {
+  min-width: 0;
+}
+
 .panel-card__header h2 {
   margin: 0;
   font-size: 26px;
@@ -201,6 +209,7 @@
   margin-top: 18px;
   max-height: 520px;
   overflow: auto;
+  overflow-x: hidden;
   padding-right: 4px;
 }
 
