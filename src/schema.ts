@@ -209,6 +209,8 @@ export const defaultAIGenerationForm: AIGenerationForm = {
   offerDetails: '',
   proofPoints: '',
   faqsContext: '',
+  copyMasterPrompt: '',
+  copyStyleExamples: '',
   copyInstructions:
     'Scrivi in italiano, orientato conversione, tono chiaro e concreto, evita promesse mediche o non verificabili.',
 }

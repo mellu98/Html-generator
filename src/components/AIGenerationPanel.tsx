@@ -4,6 +4,7 @@ interface AIGenerationPanelProps {
   form: AIGenerationForm
   configured: boolean
   model: string
+  projectCopyProfileConfigured: boolean
   status: 'idle' | 'loading' | 'done' | 'error'
   message: string
   onChange: (key: keyof AIGenerationForm, value: string) => void
@@ -85,10 +86,24 @@ const textFields: Array<{
     placeholder: 'Le domande che GPT deve coprire nelle FAQ.',
   },
   {
-    key: 'copyInstructions',
-    label: 'Istruzioni copy GPT',
+    key: 'copyMasterPrompt',
+    label: 'Prompt master GPT',
     kind: 'textarea',
-    placeholder: 'Qui mi dirai come vuoi che GPT scriva la landing.',
+    placeholder:
+      'Incolla qui le istruzioni complete del tuo vecchio GPT personalizzato.',
+  },
+  {
+    key: 'copyStyleExamples',
+    label: 'Esempi stile GPT',
+    kind: 'textarea',
+    placeholder:
+      'Incolla headline, CTA o sezioni gia generate dal tuo GPT che vuoi far imitare.',
+  },
+  {
+    key: 'copyInstructions',
+    label: 'Istruzioni extra prodotto',
+    kind: 'textarea',
+    placeholder: 'Qui aggiungi angoli, focus o richieste specifiche solo per questo prodotto.',
   },
 ]
 
@@ -96,6 +111,7 @@ export function AIGenerationPanel({
   form,
   configured,
   model,
+  projectCopyProfileConfigured,
   status,
   message,
   onChange,
@@ -111,6 +127,11 @@ export function AIGenerationPanel({
           <p>
             Compila il brief prodotto, poi GPT riempie in automatico il copy della
             landing. Logo e immagini restano manuali.
+          </p>
+          <p>
+            {projectCopyProfileConfigured
+              ? 'Profilo copy del progetto attivo da file prompts/custom-copywriter.md.'
+              : 'Puoi usare un prompt master fisso del progetto oppure incollare il tuo GPT personalizzato qui sotto.'}
           </p>
         </div>
         <span className="preview-meta">
@@ -134,7 +155,13 @@ export function AIGenerationPanel({
               <textarea
                 className="control"
                 placeholder={field.placeholder}
-                rows={field.key === 'copyInstructions' ? 6 : 4}
+                rows={
+                  field.key === 'copyMasterPrompt'
+                    ? 8
+                    : field.key === 'copyStyleExamples' || field.key === 'copyInstructions'
+                      ? 6
+                      : 4
+                }
                 value={form[field.key]}
                 onChange={(event) => onChange(field.key, event.target.value)}
               />

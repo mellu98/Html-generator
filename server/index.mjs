@@ -9,6 +9,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const rootDir = path.resolve(__dirname, '..')
 const distDir = path.join(rootDir, 'dist')
+const promptsDir = path.join(rootDir, 'prompts')
+const customCopywriterPromptPath = path.join(promptsDir, 'custom-copywriter.md')
 const isDirectRun =
   typeof process.argv[1] === 'string' && path.resolve(process.argv[1]) === __filename
 
@@ -48,6 +50,14 @@ function ensureList(items, fallback, maxItems) {
       ...(fallback[index] ?? {}),
       ...item,
     }))
+}
+
+function loadProjectCopywriterPrompt() {
+  if (!fs.existsSync(customCopywriterPromptPath)) {
+    return ''
+  }
+
+  return fs.readFileSync(customCopywriterPromptPath, 'utf8').trim()
 }
 
 const generationSchema = {
@@ -182,14 +192,37 @@ const generationSchema = {
 }
 
 function buildPrompt(brief, currentProjectData) {
+  const projectCopywriterPrompt = loadProjectCopywriterPrompt()
+  const developerSections = [
+    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
+    'Questa app lavora in one-shot e non puo ricevere domande di follow-up. Se il profilo copy dice di fare domande prima di scrivere, interpreta i campi del brief come le risposte gia fornite dall utente. Se mancano dettagli, non fare domande nel tuo output: usa un copy forte ma prudente, senza inventare prove o claim non supportati.',
+  ]
+
+  if (projectCopywriterPrompt) {
+    developerSections.push(
+      `PROFILO COPYWRITER DI PROGETTO (seguilo come stile primario quando non confligge con sicurezza, veridicita e schema):\n${projectCopywriterPrompt}`,
+    )
+  }
+
+  if (brief.copyMasterPrompt?.trim()) {
+    developerSections.push(
+      `PROFILO COPYWRITER SPECIFICO INCOLLATO DALL UTENTE:\n${brief.copyMasterPrompt.trim()}`,
+    )
+  }
+
+  if (brief.copyStyleExamples?.trim()) {
+    developerSections.push(
+      `ESEMPI DI STILE DA IMITARE NEL RITMO, NEL LESSICO E NELLA STRUTTURA, SENZA COPIARE ALLA LETTERA:\n${brief.copyStyleExamples.trim()}`,
+    )
+  }
+
   return [
     {
       role: 'developer',
       content: [
         {
           type: 'input_text',
-          text:
-            'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
+          text: developerSections.join('\n\n---\n\n'),
         },
       ],
     },
@@ -200,7 +233,20 @@ function buildPrompt(brief, currentProjectData) {
           type: 'input_text',
           text: JSON.stringify(
             {
-              brief,
+              brief: {
+                productName: brief.productName,
+                brandName: brief.brandName,
+                productCategory: brief.productCategory,
+                productDescription: brief.productDescription,
+                targetAudience: brief.targetAudience,
+                painPoints: brief.painPoints,
+                keyBenefits: brief.keyBenefits,
+                differentiators: brief.differentiators,
+                offerDetails: brief.offerDetails,
+                proofPoints: brief.proofPoints,
+                faqsContext: brief.faqsContext,
+                copyInstructions: brief.copyInstructions,
+              },
               currentProjectData: {
                 brandName: currentProjectData.brandName,
                 ctaUrl: currentProjectData.ctaUrl,
@@ -224,6 +270,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     configured: hasOpenAIKey(),
     model,
+    projectCopyProfileConfigured: Boolean(loadProjectCopywriterPrompt()),
   })
 })
 

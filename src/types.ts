@@ -102,12 +102,15 @@ export interface AIGenerationForm {
   offerDetails: string
   proofPoints: string
   faqsContext: string
+  copyMasterPrompt: string
+  copyStyleExamples: string
   copyInstructions: string
 }
 
 export interface AIHealthResponse {
   configured: boolean
   model: string
+  projectCopyProfileConfigured: boolean
 }
 
 export interface GenerateCopyRequest {

@@ -73,6 +73,7 @@ function App() {
   const [aiHealth, setAiHealth] = useState({
     configured: false,
     model: 'gpt-5.4',
+    projectCopyProfileConfigured: false,
   })
   const [aiState, setAiState] = useState<{
     kind: 'idle' | 'loading' | 'done' | 'error'
@@ -389,6 +390,7 @@ function App() {
             form={aiForm}
             message={aiState.message}
             model={aiHealth.model}
+            projectCopyProfileConfigured={aiHealth.projectCopyProfileConfigured}
             showAdvancedEditor={showAdvancedEditor}
             status={aiState.kind}
             onChange={updateAIField}

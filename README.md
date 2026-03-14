@@ -27,6 +27,24 @@ PORT=8787
 
 Se manca `OPENAI_API_KEY`, la preview funziona ma il bottone AI non genera il copy.
 
+## Profilo copy personalizzato
+
+Il progetto ora supporta un cervello copy fisso di progetto:
+
+- file: `prompts/custom-copywriter.md`
+- uso: viene caricato automaticamente dal server ad ogni generazione
+- deploy: va su GitHub e su Render insieme al resto del progetto
+
+In pratica:
+
+- dentro `prompts/custom-copywriter.md` metti le istruzioni del tuo GPT personalizzato
+- nel form puoi anche aggiungere un override per singolo prodotto con `Prompt master GPT`
+- nel campo `Esempi stile GPT` puoi incollare headline, CTA o sezioni che vuoi far imitare
+
+Nota importante:
+
+- il generatore lavora in una sola passata, quindi se il tuo vecchio GPT "faceva domande prima di scrivere", qui quelle domande vengono sostituite dai campi del brief prodotto
+
 ## Avvio locale
 
 Opzione veloce:
@@ -109,6 +127,7 @@ La Web Service serve sia:
 ## File chiave
 
 - `server/index.mjs`: endpoint OpenAI e serving produzione
+- `prompts/custom-copywriter.md`: profilo copy principale del progetto
 - `src/lib/ai.ts`: chiamate frontend verso API locale
 - `src/schema.ts`: default data, asset schema e schema editor
 - `src/lib/exporter.ts`: motore master -> clone -> HTML singolo
