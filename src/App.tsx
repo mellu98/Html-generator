@@ -84,6 +84,7 @@ function App() {
   const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [previewHeight, setPreviewHeight] = useState(1620)
+  const [showPreview, setShowPreview] = useState(false)
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
   const [installPromptEvent, setInstallPromptEvent] =
     useState<BeforeInstallPromptEvent | null>(null)
@@ -112,7 +113,9 @@ function App() {
 
   const deferredProjectData = useDeferredValue(projectData)
   const deferredInteractive = useDeferredValue(exportOptions.includeInteractiveScript)
-  const previewHtml = createPreviewHtml(deferredProjectData, deferredInteractive)
+  const previewHtml = showPreview
+    ? createPreviewHtml(deferredProjectData, deferredInteractive)
+    : ''
   const discoveryMissingInputs = getDiscoveryMissingInputs(aiForm)
   const readyToGenerate = isDiscoveryReady(aiForm)
   const resolvedDiscoveryStatus =
@@ -486,6 +489,13 @@ function App() {
         </div>
 
         <div className="hero-card__actions">
+          <button
+            className="button button--ghost"
+            type="button"
+            onClick={() => setShowPreview((current) => !current)}
+          >
+            {showPreview ? 'Nascondi preview' : 'Apri preview'}
+          </button>
           <button className="button button--ghost" type="button" onClick={handleResetAll}>
             Ripristina master
           </button>
@@ -505,7 +515,7 @@ function App() {
         </div>
       </header>
 
-      <main className="workspace">
+      <main className={`workspace${showPreview ? ' workspace--with-preview' : ''}`}>
         <aside className="editor-column">
           <DiscoveryChatPanel
             composerValue={discoveryComposer}
@@ -690,29 +700,40 @@ function App() {
           ) : null}
         </aside>
 
-        <section className="preview-column">
-          <div className="panel-card preview-card">
-            <div className="panel-card__header">
-              <div>
-                <h2>Preview fedele all export</h2>
-                <p>
-                  Questa iframe usa lo stesso motore dell HTML finale, quindi il
-                  clone che vedi qui e quello che esporterai.
-                </p>
+        {showPreview ? (
+          <section className="preview-column">
+            <div className="panel-card preview-card">
+              <div className="panel-card__header">
+                <div>
+                  <h2>Preview fedele all export</h2>
+                  <p>
+                    Questa iframe usa lo stesso motore dell HTML finale, quindi il
+                    clone che vedi qui e quello che esporterai.
+                  </p>
+                </div>
+                <div className="preview-card__actions">
+                  <span className="preview-meta">{projectData.projectName}</span>
+                  <button
+                    className="mini-button mini-button--ghost"
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                  >
+                    Chiudi preview
+                  </button>
+                </div>
               </div>
-              <span className="preview-meta">{projectData.projectName}</span>
-            </div>
 
-            <div className="preview-frame">
-              <iframe
-                sandbox="allow-scripts allow-same-origin"
-                srcDoc={previewHtml}
-                style={{ height: `${previewHeight}px` }}
-                title="Preview landing export"
-              />
+              <div className="preview-frame">
+                <iframe
+                  sandbox="allow-scripts allow-same-origin"
+                  srcDoc={previewHtml}
+                  style={{ height: `${previewHeight}px` }}
+                  title="Preview landing export"
+                />
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
       </main>
     </div>
   )

@@ -6,9 +6,12 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: 430px minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+}
+
+.workspace--with-preview {
+  grid-template-columns: 430px minmax(0, 1fr);
 }
 
 .editor-column,
@@ -526,6 +529,14 @@
   padding-bottom: 18px;
 }
 
+.preview-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  align-items: center;
+}
+
 .preview-frame {
   margin-top: 18px;
   border-radius: 24px;
@@ -553,7 +564,8 @@
 }
 
 @media (max-width: 1200px) {
-  .workspace {
+  .workspace,
+  .workspace--with-preview {
     grid-template-columns: 1fr;
   }
 }
