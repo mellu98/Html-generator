@@ -10,8 +10,19 @@ import type {
 } from '../types'
 
 const MASTER_ASSET_PREFIX = '/masters/domelio/assets/'
-const MASTER_LOCAL_FOLDER_TOKEN =
-  './Tazza Auto-Mescolante Veloce Professionale \u2013 Domelio_files/'
+
+function extractMasterLocalAssetName(value: string) {
+  const normalized = value.trim().replaceAll('\\', '/')
+  const lower = normalized.toLowerCase()
+  const marker = 'domelio_files/'
+  const markerIndex = lower.indexOf(marker)
+
+  if (markerIndex === -1) {
+    return ''
+  }
+
+  return normalized.slice(markerIndex + marker.length).split('?')[0].trim()
+}
 
 const MASTER_SECTION_IMAGES = [
   `${MASTER_ASSET_PREFIX}ChatGPT_Image_1_mar_2026_14_38_47(3).webp`,
@@ -45,8 +56,10 @@ function normalizeMasterAssetUrl(value: string) {
     return trimmed
   }
 
-  if (trimmed.startsWith(MASTER_LOCAL_FOLDER_TOKEN)) {
-    return `${MASTER_ASSET_PREFIX}${trimmed.split('/').at(-1) ?? ''}`
+  const localAssetName = extractMasterLocalAssetName(trimmed)
+
+  if (localAssetName) {
+    return `${MASTER_ASSET_PREFIX}${localAssetName}`
   }
 
   try {
@@ -54,6 +67,12 @@ function normalizeMasterAssetUrl(value: string) {
       trimmed.startsWith('//') ? `https:${trimmed}` : trimmed,
       `${getBaseOrigin()}/`,
     )
+
+    const parsedLocalAssetName = extractMasterLocalAssetName(parsed.pathname)
+
+    if (parsedLocalAssetName) {
+      return `${MASTER_ASSET_PREFIX}${parsedLocalAssetName}`
+    }
 
     if (parsed.pathname.includes('/cdn/shop/files/')) {
       return `${MASTER_ASSET_PREFIX}${parsed.pathname.split('/').at(-1) ?? ''}`

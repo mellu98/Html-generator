@@ -68,6 +68,8 @@ describe('exporter', () => {
     expect(html).toContain(defaultProjectData.primaryCtaLabel)
     expect(html).not.toContain('<iframe')
     expect(html).not.toContain('landing-generator-preview')
+    expect(html).toContain('/masters/domelio/assets/base.css')
+    expect(html).not.toContain('Domelio_files/base.css')
     expect(titleText).not.toContain('domelio')
     expect(titleText).not.toContain('tazza auto-mescolante')
     expect(visibleText).not.toContain('domelio')
