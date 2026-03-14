@@ -101,6 +101,13 @@ function App() {
     message:
       'Compila il brief, carica logo e immagini, poi lascia a GPT il copy della landing.',
   })
+  const [discoveryState, setDiscoveryState] = useState<{
+    kind: 'idle' | 'loading' | 'error'
+    message: string
+  }>({
+    kind: 'idle',
+    message: '',
+  })
   const [exportState, setExportState] = useState<{
     kind: 'idle' | 'working' | 'done' | 'error'
     message: string
@@ -346,6 +353,10 @@ function App() {
     setDiscoveryMessages(nextMessages)
     setDiscoveryComposer('')
     setDiscoveryStatus('loading')
+    setDiscoveryState({
+      kind: 'loading',
+      message: 'Sto leggendo quello che mi hai mandato e preparo la prossima domanda...',
+    })
 
     try {
       const response = await continueDiscoveryChat({
@@ -373,6 +384,10 @@ function App() {
           ? 'ready_to_generate'
           : 'needs_input',
       )
+      setDiscoveryState({
+        kind: 'idle',
+        message: '',
+      })
       setAiState({
         kind: 'idle',
         message:
@@ -382,6 +397,13 @@ function App() {
       })
     } catch (error) {
       setDiscoveryStatus('error')
+      setDiscoveryState({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Discovery chat non riuscita.',
+      })
       setAiState({
         kind: 'error',
         message:
@@ -440,6 +462,10 @@ function App() {
       setProjectData(mergeProjectData(defaultProjectData))
       setDiscoveryMessages(createInitialDiscoveryMessages())
       setDiscoveryStatus('needs_input')
+      setDiscoveryState({
+        kind: 'idle',
+        message: '',
+      })
       setDiscoveryComposer('')
       setExportOptions({
         ...mergeExportOptions(defaultExportOptions),
@@ -520,6 +546,7 @@ function App() {
           <DiscoveryChatPanel
             composerValue={discoveryComposer}
             configured={aiHealth.configured}
+            feedbackMessage={discoveryState.message}
             messages={discoveryMessages}
             missingInputs={discoveryMissingInputs}
             model={aiHealth.model}

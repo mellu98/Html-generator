@@ -15,6 +15,7 @@ interface DiscoveryChatPanelProps {
   composerValue: string
   missingInputs: DiscoveryMissingInput[]
   projectCopyProfileConfigured: boolean
+  feedbackMessage: string
   onComposerChange: (value: string) => void
   onSend: () => void
   onGenerate: () => void
@@ -28,6 +29,7 @@ export function DiscoveryChatPanel({
   composerValue,
   missingInputs,
   projectCopyProfileConfigured,
+  feedbackMessage,
   onComposerChange,
   onSend,
   onGenerate,
@@ -111,6 +113,16 @@ export function DiscoveryChatPanel({
             Genera copy finale
           </button>
         </div>
+
+        {status === 'loading' || status === 'error' ? (
+          <div
+            className={`message-card message-card--${
+              status === 'error' ? 'error' : 'neutral'
+            }`}
+          >
+            <strong>{feedbackMessage}</strong>
+          </div>
+        ) : null}
       </div>
     </section>
   )

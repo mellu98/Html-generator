@@ -242,6 +242,7 @@ const discoverySchema = {
     briefPatch: {
       type: 'object',
       additionalProperties: false,
+      required: discoveryPatchKeys,
       properties: briefFieldProperties,
     },
   },
@@ -405,7 +406,9 @@ function sanitizeDiscoveryBriefPatch(value) {
   return Object.fromEntries(
     Object.entries(value).filter(
       ([key, currentValue]) =>
-        discoveryPatchKeys.includes(key) && typeof currentValue === 'string',
+        discoveryPatchKeys.includes(key) &&
+        typeof currentValue === 'string' &&
+        currentValue.trim().length > 0,
     ),
   )
 }
