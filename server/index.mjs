@@ -91,6 +91,10 @@ const discoveryPatchKeys = [
   'faqsContext',
 ]
 
+const discoveryBriefPatchProperties = Object.fromEntries(
+  discoveryPatchKeys.map((key) => [key, briefFieldProperties[key]]),
+)
+
 const generationSchema = {
   type: 'object',
   additionalProperties: false,
@@ -243,7 +247,7 @@ const discoverySchema = {
       type: 'object',
       additionalProperties: false,
       required: discoveryPatchKeys,
-      properties: briefFieldProperties,
+      properties: discoveryBriefPatchProperties,
     },
   },
 }
