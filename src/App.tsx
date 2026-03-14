@@ -4,7 +4,6 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
-  useRef,
   useState,
 } from 'react'
 import './App.css'
@@ -87,6 +86,9 @@ function App() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [previewHeight, setPreviewHeight] = useState(1620)
   const [previewReloadToken, setPreviewReloadToken] = useState(0)
+  const [previewLoadState, setPreviewLoadState] = useState<'idle' | 'loading' | 'ready'>(
+    'idle',
+  )
   const [showPreview, setShowPreview] = useState(false)
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
   const [installPromptEvent, setInstallPromptEvent] =
@@ -120,7 +122,6 @@ function App() {
     message: 'Genera il copy, controlla la preview ed esporta il tuo HTML.',
     warnings: [],
   })
-  const previewFrameRef = useRef<HTMLIFrameElement | null>(null)
 
   const deferredProjectData = useDeferredValue(projectData)
   const deferredInteractive = useDeferredValue(exportOptions.includeInteractiveScript)
@@ -131,6 +132,24 @@ function App() {
         : '',
     [deferredInteractive, deferredProjectData, showPreview],
   )
+  const previewDocumentHtml = useMemo(
+    () =>
+      previewHtml
+        ? `${previewHtml}\n<!-- preview-reload:${previewReloadToken} -->`
+        : '',
+    [previewHtml, previewReloadToken],
+  )
+  const previewUrl = useMemo(() => {
+    if (!showPreview || !previewDocumentHtml) {
+      return ''
+    }
+
+    const blob = new Blob([previewDocumentHtml], {
+      type: 'text/html;charset=utf-8',
+    })
+
+    return URL.createObjectURL(blob)
+  }, [previewDocumentHtml, showPreview])
   const discoveryMissingInputs = getDiscoveryMissingInputs(aiForm)
   const readyToGenerate = isDiscoveryReady(aiForm)
   const resolvedDiscoveryStatus =
@@ -220,32 +239,12 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!showPreview || !previewHtml || !previewFrameRef.current) {
+    if (!previewUrl) {
       return
     }
 
-    const frame = previewFrameRef.current
-
-    try {
-      frame.srcdoc = previewHtml
-    } catch {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      try {
-        const bodyMarkup = frame.contentDocument?.body?.innerHTML?.trim() ?? ''
-
-        if (!bodyMarkup) {
-          frame.srcdoc = previewHtml
-        }
-      } catch {
-        frame.srcdoc = previewHtml
-      }
-    }, 180)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [previewHtml, previewReloadToken, showPreview])
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [previewUrl])
 
   useEffect(() => {
     let isMounted = true
@@ -296,12 +295,14 @@ function App() {
 
   function reloadPreview() {
     setPreviewHeight(1620)
+    setPreviewLoadState('loading')
     setPreviewReloadToken((current) => current + 1)
   }
 
   function togglePreview() {
     if (showPreview) {
       setShowPreview(false)
+      setPreviewLoadState('idle')
       return
     }
 
@@ -794,12 +795,19 @@ function App() {
                 </div>
                 <div className="preview-card__actions">
                   <span className="preview-meta">{projectData.projectName}</span>
+                  <span className="preview-meta">
+                    {previewLoadState === 'loading'
+                      ? 'Sto caricando...'
+                      : previewLoadState === 'ready'
+                        ? 'Preview pronta'
+                        : 'Preview idle'}
+                  </span>
                   <button
                     className="mini-button mini-button--ghost"
                     type="button"
                     onClick={reloadPreview}
                   >
-                    Ricarica preview
+                    {previewLoadState === 'loading' ? 'Ricarico...' : 'Ricarica preview'}
                   </button>
                   <button
                     className="mini-button mini-button--ghost"
@@ -813,12 +821,12 @@ function App() {
 
               <div className="preview-frame">
                 <iframe
-                  key={`preview-${previewReloadToken}`}
-                  ref={previewFrameRef}
+                  key={previewUrl || `preview-${previewReloadToken}`}
+                  src={previewUrl || 'about:blank'}
                   sandbox="allow-scripts allow-same-origin"
-                  srcDoc={previewHtml}
                   style={{ height: `${previewHeight}px` }}
                   title="Preview landing export"
+                  onLoad={() => setPreviewLoadState('ready')}
                 />
               </div>
             </div>
