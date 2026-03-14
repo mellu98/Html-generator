@@ -107,6 +107,26 @@ export interface AIGenerationForm {
   copyInstructions: string
 }
 
+export type DiscoveryChatRole = 'assistant' | 'user'
+
+export type DiscoveryMissingInput =
+  | 'offerta'
+  | 'buyer_personas'
+  | 'obiezioni'
+
+export type DiscoveryChatStatus =
+  | 'idle'
+  | 'needs_input'
+  | 'ready_to_generate'
+  | 'loading'
+  | 'error'
+
+export interface DiscoveryMessage {
+  id: string
+  role: DiscoveryChatRole
+  content: string
+}
+
 export interface AIHealthResponse {
   configured: boolean
   model: string
@@ -123,11 +143,27 @@ export interface GenerateCopyResponse {
   model: string
 }
 
+export interface DiscoveryChatRequest {
+  messages: DiscoveryMessage[]
+  brief: AIGenerationForm
+}
+
+export interface DiscoveryChatResponse {
+  assistantMessage: string
+  status: Exclude<DiscoveryChatStatus, 'idle' | 'loading' | 'error'>
+  missingInputs: DiscoveryMissingInput[]
+  briefPatch: Partial<AIGenerationForm>
+  model: string
+}
+
 export interface PersistedDraft {
   version: number
   projectData: ProjectData
   exportOptions: ExportOptions
   aiForm?: AIGenerationForm
+  discoveryMessages?: DiscoveryMessage[]
+  discoveryStatus?: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
+  discoveryMissingInputs?: DiscoveryMissingInput[]
 }
 
 export type ProjectScalarKey = {

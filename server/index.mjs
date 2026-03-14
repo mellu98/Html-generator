@@ -60,6 +60,37 @@ function loadProjectCopywriterPrompt() {
   return fs.readFileSync(customCopywriterPromptPath, 'utf8').trim()
 }
 
+const briefFieldProperties = {
+  productName: { type: 'string' },
+  brandName: { type: 'string' },
+  productCategory: { type: 'string' },
+  productDescription: { type: 'string' },
+  targetAudience: { type: 'string' },
+  painPoints: { type: 'string' },
+  keyBenefits: { type: 'string' },
+  differentiators: { type: 'string' },
+  offerDetails: { type: 'string' },
+  proofPoints: { type: 'string' },
+  faqsContext: { type: 'string' },
+  copyMasterPrompt: { type: 'string' },
+  copyStyleExamples: { type: 'string' },
+  copyInstructions: { type: 'string' },
+}
+
+const discoveryPatchKeys = [
+  'productName',
+  'brandName',
+  'productCategory',
+  'productDescription',
+  'targetAudience',
+  'painPoints',
+  'keyBenefits',
+  'differentiators',
+  'offerDetails',
+  'proofPoints',
+  'faqsContext',
+]
+
 const generationSchema = {
   type: 'object',
   additionalProperties: false,
@@ -191,6 +222,31 @@ const generationSchema = {
   },
 }
 
+const discoverySchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['assistantMessage', 'status', 'missingInputs', 'briefPatch'],
+  properties: {
+    assistantMessage: { type: 'string' },
+    status: {
+      type: 'string',
+      enum: ['needs_input', 'ready_to_generate'],
+    },
+    missingInputs: {
+      type: 'array',
+      items: {
+        type: 'string',
+        enum: ['offerta', 'buyer_personas', 'obiezioni'],
+      },
+    },
+    briefPatch: {
+      type: 'object',
+      additionalProperties: false,
+      properties: briefFieldProperties,
+    },
+  },
+}
+
 function buildPrompt(brief, currentProjectData) {
   const projectCopywriterPrompt = loadProjectCopywriterPrompt()
   const developerSections = [
@@ -266,6 +322,93 @@ function buildPrompt(brief, currentProjectData) {
   ]
 }
 
+function buildDiscoveryPrompt(brief, messages) {
+  const projectCopywriterPrompt = loadProjectCopywriterPrompt()
+  const developerSections = [
+    'Sei la fase di intervista guidata del copywriter Signora Market Copy. Non devi scrivere la landing finale: devi solo fare discovery, raccogliere materiale utile e preparare il brief migliore possibile.',
+    'Parla sempre in italiano colloquiale, diretto, semplice, concreto, quasi da banco del mercato: niente tono corporate, niente frasi fredde, niente spiegoni. Devi sembrare la stessa personalita del GPT originale.',
+    'Prima di poter dichiarare il brief pronto, devi avere abbastanza materiale su 3 blocchi obbligatori: 1) offerta / descrizione dettagliata / eventuale link landing, 2) buyer personas / target reale, 3) review negative, obiezioni o equivalenti per il tipo di offerta.',
+    'Se manca uno di questi 3 blocchi, fai domande brevi, mirate e utili. Massimo 2 domande corte per messaggio. Non rifare domande su cose gia dette chiaramente.',
+    'Se le informazioni bastano, imposta status = ready_to_generate e scrivi un messaggio breve che conferma che adesso si puo passare alla stesura del copy.',
+    'Non scrivere mai la landing in questa fase. Non produrre headline finali, sezioni finali o long-form copy. Qui fai solo discovery.',
+    'Nel briefPatch salva tutto quello che puoi estrarre in modo affidabile dal messaggio utente. Mappa cosi: offerta/desrizione/link -> productDescription e se possibile productName, brandName, productCategory, offerDetails; buyer personas -> targetAudience; obiezioni/review negative -> painPoints, faqsContext, proofPoints; differenze e benefici -> keyBenefits e differentiators.',
+    'Se il profilo copy originale dice di fare domande prima di scrivere, qui devi rispettarlo pienamente. Il tuo obiettivo e comportarti nel modo piu vicino possibile a quel GPT, ma in forma strutturata.',
+    'assistantMessage deve essere solo testo normale. missingInputs deve contenere una lista fra: offerta, buyer_personas, obiezioni.',
+  ]
+
+  if (projectCopywriterPrompt) {
+    developerSections.push(
+      `PROFILO COPYWRITER DI PROGETTO:\n${projectCopywriterPrompt}`,
+    )
+  }
+
+  if (brief.copyMasterPrompt?.trim()) {
+    developerSections.push(
+      `PROFILO COPYWRITER EXTRA INCOLLATO DALL UTENTE:\n${brief.copyMasterPrompt.trim()}`,
+    )
+  }
+
+  if (brief.copyStyleExamples?.trim()) {
+    developerSections.push(
+      `ESEMPI DI STILE DA TENERE PRESENTI:\n${brief.copyStyleExamples.trim()}`,
+    )
+  }
+
+  return [
+    {
+      role: 'developer',
+      content: [
+        {
+          type: 'input_text',
+          text: developerSections.join('\n\n---\n\n'),
+        },
+      ],
+    },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'input_text',
+          text: JSON.stringify(
+            {
+              currentBrief: {
+                productName: brief.productName,
+                brandName: brief.brandName,
+                productCategory: brief.productCategory,
+                productDescription: brief.productDescription,
+                targetAudience: brief.targetAudience,
+                painPoints: brief.painPoints,
+                keyBenefits: brief.keyBenefits,
+                differentiators: brief.differentiators,
+                offerDetails: brief.offerDetails,
+                proofPoints: brief.proofPoints,
+                faqsContext: brief.faqsContext,
+                copyInstructions: brief.copyInstructions,
+              },
+              conversation: messages,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    },
+  ]
+}
+
+function sanitizeDiscoveryBriefPatch(value) {
+  if (typeof value !== 'object' || value === null) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([key, currentValue]) =>
+        discoveryPatchKeys.includes(key) && typeof currentValue === 'string',
+    ),
+  )
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({
     configured: hasOpenAIKey(),
@@ -276,6 +419,68 @@ app.get('/api/health', (_req, res) => {
 
 app.get('/healthz', (_req, res) => {
   res.status(200).send('ok')
+})
+
+app.post('/api/discovery-chat', async (req, res) => {
+  try {
+    if (!hasOpenAIKey()) {
+      res.status(400).json({
+        error: 'OPENAI_API_KEY non configurata. Crea un file .env o imposta la variabile su Render.',
+      })
+      return
+    }
+
+    const brief = req.body?.brief
+    const messages = req.body?.messages
+
+    if (!brief || !Array.isArray(messages)) {
+      res.status(400).json({
+        error: 'Payload incompleto: servono brief e messages.',
+      })
+      return
+    }
+
+    const client = getOpenAIClient()
+    const response = await client.responses.create({
+      model,
+      reasoning: {
+        effort: 'medium',
+      },
+      input: buildDiscoveryPrompt(brief, messages),
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'landing_discovery_payload',
+          schema: discoverySchema,
+          strict: true,
+        },
+      },
+    })
+
+    const parsed = JSON.parse(response.output_text)
+
+    res.json({
+      assistantMessage: toStringValue(
+        parsed.assistantMessage,
+        'Dimmi un po di piu sul prodotto, sul cliente ideale e sulle obiezioni vere che vuoi spaccare.',
+      ),
+      status: parsed.status === 'ready_to_generate' ? 'ready_to_generate' : 'needs_input',
+      missingInputs: Array.isArray(parsed.missingInputs)
+        ? parsed.missingInputs.filter((item) =>
+            ['offerta', 'buyer_personas', 'obiezioni'].includes(item),
+          )
+        : [],
+      briefPatch: sanitizeDiscoveryBriefPatch(parsed.briefPatch),
+      model,
+    })
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Errore sconosciuto durante la discovery chat.',
+    })
+  }
 })
 
 app.post('/api/generate-copy', async (req, res) => {

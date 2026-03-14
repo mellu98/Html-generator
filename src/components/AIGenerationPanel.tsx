@@ -5,6 +5,8 @@ interface AIGenerationPanelProps {
   configured: boolean
   model: string
   projectCopyProfileConfigured: boolean
+  readyToGenerate: boolean
+  missingInputs: string[]
   status: 'idle' | 'loading' | 'done' | 'error'
   message: string
   onChange: (key: keyof AIGenerationForm, value: string) => void
@@ -112,6 +114,8 @@ export function AIGenerationPanel({
   configured,
   model,
   projectCopyProfileConfigured,
+  readyToGenerate,
+  missingInputs,
   status,
   message,
   onChange,
@@ -173,16 +177,28 @@ export function AIGenerationPanel({
       <div className="ai-actions">
         <button
           className="button button--primary"
-          disabled={!configured || status === 'loading'}
+          disabled={!configured || status === 'loading' || !readyToGenerate}
           type="button"
           onClick={onGenerate}
         >
-          {status === 'loading' ? 'Genero il copy...' : 'Genera copy automatico'}
+          {status === 'loading'
+            ? 'Genero il copy...'
+            : readyToGenerate
+              ? 'Genera copy automatico'
+              : 'Completa prima l intervista'}
         </button>
         <button className="button button--ghost" type="button" onClick={onToggleAdvancedEditor}>
           {showAdvancedEditor ? 'Nascondi editor avanzato' : 'Mostra editor avanzato'}
         </button>
       </div>
+
+      {missingInputs.length > 0 ? (
+        <div className="message-card message-card--neutral">
+          <strong>
+            Prima della generazione mancano ancora: {missingInputs.join(', ')}.
+          </strong>
+        </div>
+      ) : null}
 
       <div
         className={`message-card message-card--${

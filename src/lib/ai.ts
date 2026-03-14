@@ -1,5 +1,7 @@
 import type {
   AIHealthResponse,
+  DiscoveryChatRequest,
+  DiscoveryChatResponse,
   GenerateCopyRequest,
   GenerateCopyResponse,
 } from '../types'
@@ -31,4 +33,16 @@ export async function generateLandingCopy(payload: GenerateCopyRequest) {
   })
 
   return await parseJsonResponse<GenerateCopyResponse>(response)
+}
+
+export async function continueDiscoveryChat(payload: DiscoveryChatRequest) {
+  const response = await fetch('/api/discovery-chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return await parseJsonResponse<DiscoveryChatResponse>(response)
 }

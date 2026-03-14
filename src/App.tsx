@@ -7,8 +7,14 @@ import {
 } from 'react'
 import './App.css'
 import { AIGenerationPanel } from './components/AIGenerationPanel'
+import { DiscoveryChatPanel } from './components/DiscoveryChatPanel'
 import { ProjectForm } from './components/ProjectForm'
-import { generateLandingCopy, getAIHealth } from './lib/ai'
+import { continueDiscoveryChat, generateLandingCopy, getAIHealth } from './lib/ai'
+import {
+  createInitialDiscoveryMessages,
+  getDiscoveryMissingInputs,
+  isDiscoveryReady,
+} from './lib/discovery'
 import { createPreviewHtml, downloadTextFile, exportLandingHtml } from './lib/exporter'
 import { clearStoredDraft, loadStoredDraft, saveStoredDraft } from './lib/storage'
 import {
@@ -20,7 +26,13 @@ import {
   mergeProjectData,
   templateSchema,
 } from './schema'
-import type { AIGenerationForm, ProjectListKey, ProjectScalarKey } from './types'
+import type {
+  AIGenerationForm,
+  DiscoveryChatStatus,
+  DiscoveryMessage,
+  ProjectListKey,
+  ProjectScalarKey,
+} from './types'
 
 const materialsChecklist = [
   'Flusso principale: brief prodotto + AI copy generation.',
@@ -55,6 +67,11 @@ function App() {
   const [initialDraft] = useState(() => loadStoredDraft())
   const [aiForm, setAiForm] = useState(initialDraft.aiForm)
   const [projectData, setProjectData] = useState(initialDraft.projectData)
+  const [discoveryMessages, setDiscoveryMessages] = useState(initialDraft.discoveryMessages)
+  const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryChatStatus>(
+    initialDraft.discoveryStatus,
+  )
+  const [discoveryComposer, setDiscoveryComposer] = useState('')
   const [exportOptions, setExportOptions] = useState(
     mergeExportOptions({
       ...defaultExportOptions,
@@ -96,6 +113,14 @@ function App() {
   const deferredProjectData = useDeferredValue(projectData)
   const deferredInteractive = useDeferredValue(exportOptions.includeInteractiveScript)
   const previewHtml = createPreviewHtml(deferredProjectData, deferredInteractive)
+  const discoveryMissingInputs = getDiscoveryMissingInputs(aiForm)
+  const readyToGenerate = isDiscoveryReady(aiForm)
+  const resolvedDiscoveryStatus =
+    discoveryStatus === 'loading' || discoveryStatus === 'error'
+      ? discoveryStatus
+      : readyToGenerate
+        ? 'ready_to_generate'
+        : 'needs_input'
 
   function updateExportSettings(
     updater: (current: typeof exportOptions) => typeof exportOptions,
@@ -109,11 +134,17 @@ function App() {
       nextAiForm: AIGenerationForm,
       nextProjectData: typeof projectData,
       nextExportOptions: typeof exportOptions,
+      nextDiscoveryMessages: DiscoveryMessage[],
+      nextDiscoveryStatus: Extract<DiscoveryChatStatus, 'needs_input' | 'ready_to_generate'>,
+      nextDiscoveryMissingInputs: typeof discoveryMissingInputs,
     ) => {
       saveStoredDraft({
         aiForm: nextAiForm,
         projectData: nextProjectData,
         exportOptions: nextExportOptions,
+        discoveryMessages: nextDiscoveryMessages,
+        discoveryStatus: nextDiscoveryStatus,
+        discoveryMissingInputs: nextDiscoveryMissingInputs,
       })
       setLastSavedAt(new Date())
       setSaveState('saved')
@@ -122,11 +153,26 @@ function App() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      persistDraft(aiForm, projectData, exportOptions)
+      const nextMissingInputs = getDiscoveryMissingInputs(aiForm)
+
+      persistDraft(
+        aiForm,
+        projectData,
+        exportOptions,
+        discoveryMessages,
+        readyToGenerate ? 'ready_to_generate' : 'needs_input',
+        nextMissingInputs,
+      )
     }, 250)
 
     return () => window.clearTimeout(timeoutId)
-  }, [aiForm, exportOptions, projectData])
+  }, [
+    aiForm,
+    discoveryMessages,
+    exportOptions,
+    projectData,
+    readyToGenerate,
+  ])
 
   useEffect(() => {
     const handlePreviewMessage = (event: MessageEvent) => {
@@ -239,6 +285,15 @@ function App() {
   }
 
   async function handleGenerateCopy() {
+    if (!readyToGenerate) {
+      setAiState({
+        kind: 'error',
+        message:
+          'Prima completa l intervista guidata: servono offerta, buyer personas e obiezioni reali.',
+      })
+      return
+    }
+
     setAiState({
       kind: 'loading',
       message: 'GPT sta costruendo il copy della landing sulla master attiva...',
@@ -266,6 +321,70 @@ function App() {
           error instanceof Error
             ? error.message
             : 'Generazione AI non riuscita.',
+      })
+    }
+  }
+
+  async function handleDiscoverySend() {
+    const trimmedComposer = discoveryComposer.trim()
+
+    if (!trimmedComposer) {
+      return
+    }
+
+    const userMessage: DiscoveryMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: trimmedComposer,
+    }
+    const nextMessages = [...discoveryMessages, userMessage]
+
+    setSaveState('saving')
+    setDiscoveryMessages(nextMessages)
+    setDiscoveryComposer('')
+    setDiscoveryStatus('loading')
+
+    try {
+      const response = await continueDiscoveryChat({
+        messages: nextMessages,
+        brief: aiForm,
+      })
+
+      const mergedForm = {
+        ...aiForm,
+        ...response.briefPatch,
+      }
+      const nextMissing = getDiscoveryMissingInputs(mergedForm)
+
+      setAiForm(mergedForm)
+      setDiscoveryMessages((current) => [
+        ...current,
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: response.assistantMessage,
+        },
+      ])
+      setDiscoveryStatus(
+        response.status === 'ready_to_generate' || nextMissing.length === 0
+          ? 'ready_to_generate'
+          : 'needs_input',
+      )
+      setAiState({
+        kind: 'idle',
+        message:
+          nextMissing.length === 0
+            ? 'Intervista completa. Ora puoi generare il copy finale.'
+            : 'Intervista aggiornata. Continua a rispondere alle domande chiave.',
+      })
+    } catch (error) {
+      setDiscoveryStatus('error')
+      setAiState({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Discovery chat non riuscita.',
       })
     }
   }
@@ -316,6 +435,9 @@ function App() {
     startTransition(() => {
       setAiForm({ ...defaultAIGenerationForm })
       setProjectData(mergeProjectData(defaultProjectData))
+      setDiscoveryMessages(createInitialDiscoveryMessages())
+      setDiscoveryStatus('needs_input')
+      setDiscoveryComposer('')
       setExportOptions({
         ...mergeExportOptions(defaultExportOptions),
         fileName: createDefaultFileName(defaultProjectData.projectName),
@@ -385,12 +507,33 @@ function App() {
 
       <main className="workspace">
         <aside className="editor-column">
+          <DiscoveryChatPanel
+            composerValue={discoveryComposer}
+            configured={aiHealth.configured}
+            messages={discoveryMessages}
+            missingInputs={discoveryMissingInputs}
+            model={aiHealth.model}
+            projectCopyProfileConfigured={aiHealth.projectCopyProfileConfigured}
+            status={resolvedDiscoveryStatus}
+            onComposerChange={setDiscoveryComposer}
+            onGenerate={handleGenerateCopy}
+            onSend={handleDiscoverySend}
+          />
+
           <AIGenerationPanel
             configured={aiHealth.configured}
             form={aiForm}
             message={aiState.message}
+            missingInputs={discoveryMissingInputs.map((item) =>
+              item === 'offerta'
+                ? 'offerta'
+                : item === 'buyer_personas'
+                  ? 'buyer personas'
+                  : 'obiezioni',
+            )}
             model={aiHealth.model}
             projectCopyProfileConfigured={aiHealth.projectCopyProfileConfigured}
+            readyToGenerate={readyToGenerate}
             showAdvancedEditor={showAdvancedEditor}
             status={aiState.kind}
             onChange={updateAIField}

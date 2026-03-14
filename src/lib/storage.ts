@@ -5,8 +5,15 @@ import {
   mergeExportOptions,
   mergeProjectData,
 } from '../schema'
+import {
+  createInitialDiscoveryMessages,
+  getDiscoveryMissingInputs,
+} from './discovery'
 import type {
   AIGenerationForm,
+  DiscoveryChatStatus,
+  DiscoveryMessage,
+  DiscoveryMissingInput,
   ExportOptions,
   PersistedDraft,
   ProjectData,
@@ -20,6 +27,9 @@ function fallbackDraft() {
     projectData: structuredClone(defaultProjectData),
     exportOptions: { ...defaultExportOptions },
     aiForm: { ...defaultAIGenerationForm },
+    discoveryMessages: createInitialDiscoveryMessages(),
+    discoveryStatus: 'needs_input' as Exclude<DiscoveryChatStatus, 'loading' | 'error'>,
+    discoveryMissingInputs: getDiscoveryMissingInputs(defaultAIGenerationForm),
   }
 }
 
@@ -27,6 +37,9 @@ export function loadStoredDraft(): {
   aiForm: AIGenerationForm
   projectData: ProjectData
   exportOptions: ExportOptions
+  discoveryMessages: DiscoveryMessage[]
+  discoveryStatus: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
+  discoveryMissingInputs: DiscoveryMissingInput[]
 } {
   if (typeof window === 'undefined') {
     return fallbackDraft()
@@ -48,6 +61,20 @@ export function loadStoredDraft(): {
       },
       projectData: mergeProjectData(parsed.projectData),
       exportOptions: mergeExportOptions(parsed.exportOptions),
+      discoveryMessages:
+        Array.isArray(parsed.discoveryMessages) && parsed.discoveryMessages.length > 0
+          ? parsed.discoveryMessages
+          : createInitialDiscoveryMessages(),
+      discoveryStatus:
+        parsed.discoveryStatus === 'ready_to_generate'
+          ? 'ready_to_generate'
+          : 'needs_input',
+      discoveryMissingInputs: Array.isArray(parsed.discoveryMissingInputs)
+        ? parsed.discoveryMissingInputs
+        : getDiscoveryMissingInputs({
+            ...defaultAIGenerationForm,
+            ...parsed.aiForm,
+          }),
     }
   } catch {
     return fallbackDraft()
@@ -58,6 +85,9 @@ export function saveStoredDraft(draft: {
   aiForm: AIGenerationForm
   projectData: ProjectData
   exportOptions: ExportOptions
+  discoveryMessages: DiscoveryMessage[]
+  discoveryStatus: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
+  discoveryMissingInputs: DiscoveryMissingInput[]
 }) {
   if (typeof window === 'undefined') {
     return
@@ -68,6 +98,9 @@ export function saveStoredDraft(draft: {
     aiForm: draft.aiForm,
     projectData: draft.projectData,
     exportOptions: draft.exportOptions,
+    discoveryMessages: draft.discoveryMessages,
+    discoveryStatus: draft.discoveryStatus,
+    discoveryMissingInputs: draft.discoveryMissingInputs,
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
