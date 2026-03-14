@@ -1,0 +1,24 @@
+{
+  "name": "Landing Master Generator",
+  "short_name": "LandingGen",
+  "description": "Generatore PWA di landing HTML singolo pronto per WordPress.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7ecdf",
+  "theme_color": "#1e140d",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
