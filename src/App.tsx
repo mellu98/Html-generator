@@ -84,7 +84,6 @@ function App() {
   )
   const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
-  const [previewHeight, setPreviewHeight] = useState(1620)
   const [previewReloadToken, setPreviewReloadToken] = useState(0)
   const [previewLoadState, setPreviewLoadState] = useState<'idle' | 'loading' | 'ready'>(
     'idle',
@@ -212,28 +211,14 @@ function App() {
   ])
 
   useEffect(() => {
-    const handlePreviewMessage = (event: MessageEvent) => {
-      if (event.data?.source !== 'landing-generator-preview') {
-        return
-      }
-
-      const nextHeight = Number(event.data.height)
-
-      if (Number.isFinite(nextHeight)) {
-        setPreviewHeight(Math.max(960, nextHeight + 24))
-      }
-    }
-
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault()
       setInstallPromptEvent(event as BeforeInstallPromptEvent)
     }
 
-    window.addEventListener('message', handlePreviewMessage)
     window.addEventListener('beforeinstallprompt', handleBeforeInstall)
 
     return () => {
-      window.removeEventListener('message', handlePreviewMessage)
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
     }
   }, [])
@@ -294,7 +279,6 @@ function App() {
   }
 
   function reloadPreview() {
-    setPreviewHeight(1620)
     setPreviewLoadState('loading')
     setPreviewReloadToken((current) => current + 1)
   }
@@ -824,7 +808,6 @@ function App() {
                   key={previewUrl || `preview-${previewReloadToken}`}
                   src={previewUrl || 'about:blank'}
                   sandbox="allow-scripts allow-same-origin"
-                  style={{ height: `${previewHeight}px` }}
                   title="Preview landing export"
                   onLoad={() => setPreviewLoadState('ready')}
                 />

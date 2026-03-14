@@ -67,7 +67,7 @@ describe('exporter', () => {
     expect(html).toContain(defaultProjectData.productTitle)
     expect(html).toContain(defaultProjectData.primaryCtaLabel)
     expect(html).not.toContain('<iframe')
-    expect(html).toContain('landing-generator-preview')
+    expect(html).not.toContain('landing-generator-preview')
     expect(titleText).not.toContain('domelio')
     expect(titleText).not.toContain('tazza auto-mescolante')
     expect(visibleText).not.toContain('domelio')

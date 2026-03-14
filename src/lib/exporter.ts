@@ -945,40 +945,6 @@ function injectOptionalScript(document: Document) {
   document.body.append(script)
 }
 
-function injectPreviewBridge(document: Document) {
-  const script = document.createElement('script')
-
-  script.textContent = `
-    (() => {
-      const sendHeight = () => {
-        window.parent?.postMessage(
-          {
-            source: 'landing-generator-preview',
-            height: Math.max(
-              document.documentElement.scrollHeight,
-              document.body.scrollHeight
-            ),
-          },
-          '*'
-        );
-      };
-
-      if ('ResizeObserver' in window) {
-        const observer = new ResizeObserver(sendHeight);
-        observer.observe(document.body);
-      }
-
-      window.addEventListener('load', sendHeight);
-      window.addEventListener('resize', sendHeight);
-      window.setTimeout(sendHeight, 50);
-      window.setTimeout(sendHeight, 250);
-      window.setTimeout(sendHeight, 750);
-    })();
-  `
-
-  document.body.append(script)
-}
-
 function serialize(document: Document) {
   return `<!DOCTYPE html>\n${document.documentElement.outerHTML}`
 }
@@ -1025,8 +991,6 @@ export function createPreviewHtml(
   if (includeInteractiveScript) {
     injectOptionalScript(document)
   }
-
-  injectPreviewBridge(document)
 
   return serialize(document)
 }
