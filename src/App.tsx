@@ -3,6 +3,8 @@ import {
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useMemo,
+  useRef,
   useState,
 } from 'react'
 import './App.css'
@@ -84,6 +86,7 @@ function App() {
   const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [previewHeight, setPreviewHeight] = useState(1620)
+  const [previewReloadToken, setPreviewReloadToken] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
   const [installPromptEvent, setInstallPromptEvent] =
@@ -117,12 +120,17 @@ function App() {
     message: 'Genera il copy, controlla la preview ed esporta il tuo HTML.',
     warnings: [],
   })
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null)
 
   const deferredProjectData = useDeferredValue(projectData)
   const deferredInteractive = useDeferredValue(exportOptions.includeInteractiveScript)
-  const previewHtml = showPreview
-    ? createPreviewHtml(deferredProjectData, deferredInteractive)
-    : ''
+  const previewHtml = useMemo(
+    () =>
+      showPreview
+        ? createPreviewHtml(deferredProjectData, deferredInteractive)
+        : '',
+    [deferredInteractive, deferredProjectData, showPreview],
+  )
   const discoveryMissingInputs = getDiscoveryMissingInputs(aiForm)
   const readyToGenerate = isDiscoveryReady(aiForm)
   const resolvedDiscoveryStatus =
@@ -212,6 +220,34 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!showPreview || !previewHtml || !previewFrameRef.current) {
+      return
+    }
+
+    const frame = previewFrameRef.current
+
+    try {
+      frame.srcdoc = previewHtml
+    } catch {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const bodyMarkup = frame.contentDocument?.body?.innerHTML?.trim() ?? ''
+
+        if (!bodyMarkup) {
+          frame.srcdoc = previewHtml
+        }
+      } catch {
+        frame.srcdoc = previewHtml
+      }
+    }, 180)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [previewHtml, previewReloadToken, showPreview])
+
+  useEffect(() => {
     let isMounted = true
 
     async function loadHealth() {
@@ -256,6 +292,21 @@ function App() {
       ...current,
       [key]: value,
     }))
+  }
+
+  function reloadPreview() {
+    setPreviewHeight(1620)
+    setPreviewReloadToken((current) => current + 1)
+  }
+
+  function togglePreview() {
+    if (showPreview) {
+      setShowPreview(false)
+      return
+    }
+
+    reloadPreview()
+    setShowPreview(true)
   }
 
   function updateScalarField(key: ProjectScalarKey, value: string | boolean) {
@@ -320,6 +371,9 @@ function App() {
         ...current,
         fileName: createDefaultFileName(result.projectData.projectName),
       }))
+      if (showPreview) {
+        reloadPreview()
+      }
       setAiState({
         kind: 'done',
         message: `Copy generato con ${result.model}. Controlla preview, logo e immagini, poi esporta.`,
@@ -518,7 +572,7 @@ function App() {
           <button
             className="button button--ghost"
             type="button"
-            onClick={() => setShowPreview((current) => !current)}
+            onClick={togglePreview}
           >
             {showPreview ? 'Nascondi preview' : 'Apri preview'}
           </button>
@@ -743,6 +797,13 @@ function App() {
                   <button
                     className="mini-button mini-button--ghost"
                     type="button"
+                    onClick={reloadPreview}
+                  >
+                    Ricarica preview
+                  </button>
+                  <button
+                    className="mini-button mini-button--ghost"
+                    type="button"
                     onClick={() => setShowPreview(false)}
                   >
                     Chiudi preview
@@ -752,6 +813,8 @@ function App() {
 
               <div className="preview-frame">
                 <iframe
+                  key={`preview-${previewReloadToken}`}
+                  ref={previewFrameRef}
                   sandbox="allow-scripts allow-same-origin"
                   srcDoc={previewHtml}
                   style={{ height: `${previewHeight}px` }}
