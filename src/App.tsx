@@ -48,7 +48,7 @@ function createDefaultFileName(projectName: string) {
     .replaceAll(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-  return `${normalizedName || 'domelio-master-clone'}.html`
+  return `${normalizedName || 'landing-master'}.html`
 }
 
 function App() {
@@ -240,7 +240,7 @@ function App() {
   async function handleGenerateCopy() {
     setAiState({
       kind: 'loading',
-      message: 'GPT sta costruendo il copy della landing sulla master Domelio...',
+      message: 'GPT sta costruendo il copy della landing sulla master attiva...',
     })
 
     try {
@@ -303,7 +303,7 @@ function App() {
 
   function handleResetAll() {
     const shouldReset = window.confirm(
-      'Vuoi davvero ripristinare la master Domelio e perdere la bozza corrente?',
+      'Vuoi davvero ripristinare la master attiva e perdere la bozza corrente?',
     )
 
     if (!shouldReset) {
@@ -322,11 +322,11 @@ function App() {
       setAiState({
         kind: 'idle',
         message:
-          'Bozza ripristinata. Puoi generare di nuovo il copy automatico dalla master Domelio.',
+          'Bozza ripristinata. Puoi generare di nuovo il copy automatico dalla master attiva.',
       })
       setExportState({
         kind: 'idle',
-        message: 'Bozza ripristinata ai valori della master Domelio.',
+        message: 'Bozza ripristinata ai valori neutri della master attiva.',
         warnings: [],
       })
     })

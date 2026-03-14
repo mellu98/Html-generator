@@ -2,15 +2,11 @@
 
 App locale `React + Vite + TypeScript + Node` che prende una landing master reale e genera un solo file `HTML` pronto per WordPress.
 
-In questa build la master attiva e:
-
-- landing Shopify Domelio
-- URL live: `https://f0un1h-hy.myshopify.com/products/tazza-auto-mescolante-veloce-professionale`
-- sorgente importata da ZIP + screenshot desktop/mobile
+La build pubblica mostra una UI neutra all'apertura: la master reale resta interna al motore e non viene esposta come copy o media di default.
 
 ## Cosa fa adesso
 
-- usa la landing Domelio reale come base
+- usa una landing master reale come base strutturale
 - ha un flusso `AI-first`: tu compili il brief prodotto, GPT genera il copy della landing
 - lascia manuali solo logo e immagini
 - salva la bozza nel browser
@@ -25,7 +21,7 @@ In questa build la master attiva e:
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-5.2
+OPENAI_MODEL=gpt-5.4
 PORT=8787
 ```
 

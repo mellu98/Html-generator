@@ -12,7 +12,8 @@ import type {
   ProjectData,
 } from '../types'
 
-const STORAGE_KEY = 'landing-generator/draft-v1'
+const STORAGE_KEY = 'landing-generator/draft-v2'
+const STORAGE_VERSION = 2
 
 function fallbackDraft() {
   return {
@@ -63,7 +64,7 @@ export function saveStoredDraft(draft: {
   }
 
   const payload: PersistedDraft = {
-    version: 1,
+    version: STORAGE_VERSION,
     aiForm: draft.aiForm,
     projectData: draft.projectData,
     exportOptions: draft.exportOptions,

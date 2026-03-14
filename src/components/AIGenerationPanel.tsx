@@ -22,19 +22,19 @@ const textFields: Array<{
     key: 'productName',
     label: 'Nome prodotto',
     kind: 'input',
-    placeholder: 'Es. Tazza auto-mescolante premium',
+    placeholder: 'Es. Shaker magnetico premium',
   },
   {
     key: 'brandName',
     label: 'Brand',
     kind: 'input',
-    placeholder: 'Es. Domelio',
+    placeholder: 'Es. Nome brand',
   },
   {
     key: 'productCategory',
     label: 'Categoria',
     kind: 'input',
-    placeholder: 'Es. Mug, beauty device, accessorio palestra',
+    placeholder: 'Es. Beauty device, accessorio cucina, fitness tool',
   },
   {
     key: 'productDescription',
@@ -114,7 +114,7 @@ export function AIGenerationPanel({
           </p>
         </div>
         <span className="preview-meta">
-          {configured ? `OpenAI pronto · ${model}` : 'OpenAI non configurato'}
+          {configured ? `OpenAI pronto - ${model}` : 'OpenAI non configurato'}
         </span>
       </div>
 

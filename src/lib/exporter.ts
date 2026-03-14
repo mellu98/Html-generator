@@ -340,6 +340,64 @@ function rebuildReviews(document: Document, data: ProjectData) {
   }
 }
 
+function sanitizeResidualSeedText(document: Document, data: ProjectData) {
+  const currentYear = new Date().getFullYear()
+  const replacements: Array<[RegExp, string]> = [
+    [/domelio/gi, data.brandName],
+    [/tazza auto-mescolante veloce professionale/gi, data.productTitle],
+    [/tazza auto-mescolante/gi, data.productTitle],
+    [/\b1\s+tazza\b/gi, '1 pezzo'],
+    [/\b2\s+tazze\b/gi, '2 pezzi'],
+    [/\b3\s+tazze\b/gi, '3 pezzi'],
+    [/perfetta per provare/gi, data.offerHighlights[0]?.text ?? 'Offerta entry level'],
+    [/una per casa,\s*una per l['’]ufficio/gi, data.offerHighlights[1]?.text ?? 'Bundle smart'],
+    [/regalo perfetto \+\s*prezzo migliore/gi, data.offerHighlights[2]?.text ?? 'Offerta top'],
+    [/pi[uù]\s+scelto/gi, 'Scelta smart'],
+    [/miglior offerta/gi, 'Offerta top'],
+    [/acquirente verificato/gi, data.reviewVerifiedLabel],
+    [
+      /offriamo spedizione tracciata e assicurata per tutti i nostri ordini\.[\s\S]*?prima della spedizione\./gi,
+      data.shippingAccordionText,
+    ],
+    [
+      /amiamo i nostri prodotti e siamo sicuri che li amerai anche tu!?[\s\S]*?ti rimborseremo\./gi,
+      data.returnsAccordionText,
+    ],
+    [
+      /l'ho usato ogni mattina per due settimane:[\s\S]*?la consistenza\./gi,
+      data.reviewItems[0]?.quote ?? '',
+    ],
+    [/gabriele h\./gi, data.reviewItems[0]?.author ?? 'Cliente'],
+    [/©\s*2026,\s*domelio/gi, `© ${currentYear}, ${data.brandName}`],
+  ]
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode
+    const parent = node.parentElement
+
+    if (!parent || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE'].includes(parent.tagName)) {
+      continue
+    }
+
+    const original = node.textContent ?? ''
+    let nextValue = original
+
+    for (const [pattern, replacement] of replacements) {
+      if (!replacement) {
+        continue
+      }
+
+      nextValue = nextValue.replace(pattern, replacement)
+    }
+
+    if (nextValue !== original) {
+      node.textContent = nextValue
+    }
+  }
+}
+
 function rewriteAssetReferences(document: Document) {
   for (const image of Array.from(document.querySelectorAll('img'))) {
     const src = image.getAttribute('src')
@@ -670,6 +728,7 @@ function applyProjectData(document: Document, input: ProjectData) {
   setTextContent(document.querySelector('.pagepilot-cta p'), data.guaranteeText)
 
   rebuildReviews(document, data)
+  sanitizeResidualSeedText(document, data)
 
   const customStyle = document.createElement('style')
   customStyle.textContent = `

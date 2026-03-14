@@ -52,13 +52,26 @@ describe('exporter', () => {
     vi.unstubAllGlobals()
   })
 
-  it('builds a preview HTML document with the Domelio master content', () => {
+  it('builds a preview HTML document with neutral starter content', () => {
     const html = createPreviewHtml(defaultProjectData, true)
+    const document = new DOMParser().parseFromString(html, 'text/html')
+    const contentClone = document.body.cloneNode(true) as HTMLElement
+
+    contentClone.querySelectorAll('script, style, noscript, template').forEach((element) => {
+      element.remove()
+    })
+
+    const visibleText = contentClone.textContent?.toLowerCase() ?? ''
+    const titleText = document.title.toLowerCase()
 
     expect(html).toContain(defaultProjectData.productTitle)
     expect(html).toContain(defaultProjectData.primaryCtaLabel)
     expect(html).not.toContain('<iframe')
     expect(html).toContain('landing-generator-preview')
+    expect(titleText).not.toContain('domelio')
+    expect(titleText).not.toContain('tazza auto-mescolante')
+    expect(visibleText).not.toContain('domelio')
+    expect(visibleText).not.toContain('tazza auto-mescolante')
   })
 
   it('exports inline assets as a single portable HTML', async () => {

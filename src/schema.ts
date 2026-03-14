@@ -8,288 +8,222 @@ import type {
   TemplateSchema,
 } from './types'
 
+function createSvgDataUri(markup: string) {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markup)}`
+}
+
+function createLogoPlaceholder(label: string) {
+  return createSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+      <rect width="320" height="96" rx="24" fill="#f7efe8"/>
+      <rect x="16" y="16" width="64" height="64" rx="18" fill="#d8a47f"/>
+      <text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#fff">B</text>
+      <text x="104" y="58" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#51382a">${label}</text>
+    </svg>
+  `)
+}
+
+function createMediaPlaceholder(label: string, accent: string) {
+  return createSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fbf5ef"/>
+          <stop offset="100%" stop-color="#f3e3d3"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="1200" rx="72" fill="url(#bg)"/>
+      <rect x="110" y="110" width="980" height="980" rx="56" fill="#fffaf6" stroke="${accent}" stroke-width="18" stroke-dasharray="30 18"/>
+      <circle cx="600" cy="470" r="170" fill="${accent}" opacity="0.18"/>
+      <rect x="350" y="650" width="500" height="34" rx="17" fill="${accent}" opacity="0.24"/>
+      <rect x="420" y="720" width="360" height="26" rx="13" fill="${accent}" opacity="0.16"/>
+      <text x="600" y="550" text-anchor="middle" font-family="Arial, sans-serif" font-size="68" font-weight="700" fill="#5f4638">${label}</text>
+    </svg>
+  `)
+}
+
+function createAvatarPlaceholder(label: string, accent: string) {
+  return createSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="60" fill="${accent}"/>
+      <circle cx="60" cy="48" r="22" fill="#fff" opacity="0.92"/>
+      <path d="M26 100c8-18 21-28 34-28s26 10 34 28" fill="#fff" opacity="0.92"/>
+      <text x="60" y="112" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#fff">${label}</text>
+    </svg>
+  `)
+}
+
+const mediaAccents = ['#d8a47f', '#c97b63', '#7c8b6b', '#4f6d7a', '#9c6644']
+
+const topBarAvatarPlaceholders = ['A', 'B', 'C', 'D'].map((label, index) => ({
+  src: createAvatarPlaceholder(label, mediaAccents[index % mediaAccents.length]),
+  alt: `Avatar placeholder ${index + 1}`,
+}))
+
+const galleryPlaceholders = ['HERO 1', 'HERO 2', 'DETAIL 1', 'DETAIL 2', 'DETAIL 3'].map(
+  (label, index) => ({
+    src: createMediaPlaceholder(label, mediaAccents[index % mediaAccents.length]),
+    alt: `Immagine placeholder ${index + 1}`,
+  }),
+)
+
+const sectionImagePlaceholders = ['BENEFIT 1', 'BENEFIT 2', 'PROOF 1', 'PROOF 2'].map(
+  (label, index) => ({
+    src: createMediaPlaceholder(label, mediaAccents[(index + 1) % mediaAccents.length]),
+    alt: `Immagine sezione placeholder ${index + 1}`,
+  }),
+)
+
+const demoMediaPlaceholders = ['DEMO 1', 'DEMO 2', 'DEMO 3'].map((label, index) => ({
+  src: createMediaPlaceholder(label, mediaAccents[(index + 2) % mediaAccents.length]),
+  alt: `Demo placeholder ${index + 1}`,
+}))
+
 export const defaultProjectData: ProjectData = {
-  projectName: 'Domelio Master Clone',
-  metaTitle: 'Tazza Auto-Mescolante Veloce Professionale - Domelio',
+  projectName: 'Landing Master',
+  metaTitle: 'Titolo prodotto | Brand',
   metaDescription:
-    'Mescola istantaneamente senza grumi, ideale per caffe, proteine e vita frenetica',
-  brandName: 'Domelio',
-  logoSrc: '/masters/domelio/assets/ChatGPT_6.webp',
-  logoAlt: 'Domelio',
-  productTitle: 'Tazza Auto-Mescolante Veloce Professionale',
+    'Template landing pronto per essere personalizzato con il tuo prodotto, il tuo copy e i tuoi asset.',
+  brandName: 'Brand',
+  logoSrc: createLogoPlaceholder('BRAND'),
+  logoAlt: 'Logo brand',
+  productTitle: 'Titolo prodotto ad alta conversione',
   productSubtitle:
-    'che miscela caffe, proteine e bevande solubili in 3 secondi senza cucchiaino',
-  salePrice: 'EUR 24,95',
-  comparePrice: 'EUR 49,99',
+    'Promessa principale, beneficio chiave e motivo per cui conviene agire adesso.',
+  salePrice: 'EUR 29,90',
+  comparePrice: 'EUR 59,90',
   saveBadgeText: '- 50%',
-  primaryCtaLabel: 'Lo voglio',
+  primaryCtaLabel: 'Scopri l offerta',
   ctaUrl: 'https://example.com/offerta',
-  topBarRatingText: '4.8 su 5',
-  topBarAvatars: [
-    {
-      src: '/masters/domelio/assets/ChatGPT-1_100x.webp',
-      alt: 'Avatar recensione 1',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT-1_335a7d18-fdd6-4db7-ab78-7b8bda1d7544_100x.webp',
-      alt: 'Avatar recensione 2',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT-1_4e82bc50-08a6-46b7-b2f9-2b895bbcd308_100x.webp',
-      alt: 'Avatar recensione 3',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT-1_2f97a1c7-1b2a-4b56-bd5c-25ce5b8ce221_100x.webp',
-      alt: 'Avatar recensione 4',
-    },
-  ],
-  gallery: [
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_38_47.webp',
-      alt: 'Immagine principale 1',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_39_39.webp',
-      alt: 'Immagine principale 2',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_38_41.webp',
-      alt: 'Immagine principale 3',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_47_24.webp',
-      alt: 'Immagine principale 4',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_47_15.webp',
-      alt: 'Immagine principale 5',
-    },
-  ],
-  sectionImages: [
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_38_47(3).webp',
-      alt: 'Immagine sezione 1',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_39_34.webp',
-      alt: 'Immagine sezione 2',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_39_39(2).webp',
-      alt: 'Immagine sezione 3',
-    },
-    {
-      src: '/masters/domelio/assets/ChatGPT_Image_1_mar_2026_14_38_41(2).webp',
-      alt: 'Immagine sezione 4',
-    },
-  ],
-  demoMedia: [
-    {
-      src: '/masters/domelio/assets/gif1.gif',
-      alt: 'Demo prodotto 1',
-    },
-    {
-      src: '/masters/domelio/assets/gif2.gif',
-      alt: 'Demo prodotto 2',
-    },
-    {
-      src: '/masters/domelio/assets/gif3.gif',
-      alt: 'Demo prodotto 3',
-    },
-  ],
-  reviewerAvatarSrc: '/masters/domelio/assets/630cd7d7-c8e8-4cfd-93a2-2a119f1cefc4.webp',
-  reviewerAvatarAlt: 'Cliente soddisfatto',
+  topBarRatingText: 'Clienti soddisfatti e feedback positivi',
+  topBarAvatars: topBarAvatarPlaceholders,
+  gallery: galleryPlaceholders,
+  sectionImages: sectionImagePlaceholders,
+  demoMedia: demoMediaPlaceholders,
+  reviewerAvatarSrc: createAvatarPlaceholder('R', '#d8a47f'),
+  reviewerAvatarAlt: 'Avatar placeholder',
   bulletPoints: [
-    { text: 'Mescola caffe e zucchero in 3 secondi' },
-    { text: 'Scioglie cappuccino e cioccolata senza residui' },
-    { text: 'Elimina i grumi delle proteine' },
-    { text: 'Tiene la scrivania pulita' },
+    { text: 'Beneficio chiave espresso in modo diretto' },
+    { text: 'Riduce una frizione concreta della routine' },
+    { text: 'Valore percepito chiaro anche a colpo d occhio' },
+    { text: 'Perfetto per un offerta orientata alla conversione' },
   ],
   offerHighlights: [
-    { text: 'Perfetta per provare' },
-    { text: "Una per casa, una per l'ufficio" },
-    { text: 'Regalo perfetto + Prezzo migliore' },
+    { text: 'Offerta entry level pronta da testare' },
+    { text: 'Bundle o upsell facile da comunicare' },
+    { text: 'Urgenza commerciale da personalizzare' },
   ],
   shippingAccordionTitle: 'Informazioni sulla spedizione',
   shippingAccordionText:
-    "Offriamo spedizione tracciata e assicurata per tutti i nostri ordini. L'elaborazione dell'ordine richiede 1-3 giorni lavorativi prima della spedizione.",
+    'Inserisci qui tempi di preparazione, tracking, corriere e note logistiche del prodotto.',
   returnsAccordionTitle: 'Politica di reso',
   returnsAccordionText:
-    'Amiamo i nostri prodotti e siamo sicuri che li amerai anche tu. Per questo offriamo una prova di 30 giorni senza rischi. Se non sei soddisfatto dei risultati, ti rimborseremo.',
+    'Inserisci qui reso, garanzia, condizioni di rimborso e qualsiasi dettaglio legale richiesto.',
   mixingSectionHeading:
-    'Mai piu bevande grumose: mescola uniforme in pochi secondi',
+    'Aggancia subito il problema principale che il prodotto risolve',
   mixingSectionBody:
-    'Basta scuotere o usare cucchiai. La tazza elettrica ad alto RPM crea una consistenza liscia in pochi secondi, cosi caffe proteico o cioccolata diventano pronti e gradevoli, senza grumi che rovinano il gusto.',
-  mixingSectionCtaLabel: 'La voglio',
-  routineSectionHeading: 'Trasforma la routine: bevande pronte e senza stress',
+    'Qui va il blocco che spiega la trasformazione: cosa cambia prima, cosa succede dopo e perche il risultato si percepisce subito.',
+  mixingSectionCtaLabel: 'Voglio provarlo',
+  routineSectionHeading: 'Mostra come il prodotto migliora la routine quotidiana',
   routineSectionBody:
-    'La tecnologia di miscelazione ad alta velocita elimina i grumi e riduce i tempi, offrendo bevande calde o fredde perfette senza fatica quotidiana.',
-  comparisonSectionHeading: 'Cosa rende speciale la Tazza auto-mescolante ?',
+    'Spiega il contesto d uso ideale, i momenti della giornata in cui il prodotto aiuta e il motivo per cui risulta pratico.',
+  comparisonSectionHeading: 'Perche questa proposta convince piu delle alternative',
   comparisonSectionBody:
-    'Rispetto ad altri, questa tazza unisce miscelazione ad alto RPM, vetro resistente e portabilita a batteria. Offre bevande piu lisce, pulizia semplice e uso ovunque, senza compromessi.',
-  resultsSectionHeading: 'Risultati visibili in pochi utilizzi',
+    'Confronta in modo concreto materiali, esperienza, comodita e valore percepito senza usare promesse non verificabili.',
+  resultsSectionHeading: 'Benefit chiari, veloci da capire e facili da ricordare',
   resultsItems: [
     {
-      percent: '98%',
-      text: 'Segnalato che il caffe proteico risulta privo di grumi in pochi secondi.',
+      percent: '1 uso',
+      text: 'Il primo beneficio deve essere evidente gia al primo contatto con il prodotto.',
     },
     {
-      percent: '96%',
-      text: 'Notato che la pulizia esterna riduce il tempo di manutenzione quotidiana.',
+      percent: '24h',
+      text: 'Spiega il vantaggio pratico che il cliente percepisce nella routine quotidiana.',
     },
     {
-      percent: '97%',
-      text: 'Esperienza che la tazza rimane integra dopo usi ripetuti con bevande calde.',
+      percent: 'plug&play',
+      text: 'Sottolinea la facilita d uso e la velocita con cui si capisce il valore dell acquisto.',
     },
   ],
   portabilitySectionHeading:
-    'Portala ovunque: ufficio, palestra, auto o campeggio',
+    'Adattalo a scenari d uso reali e facilmente immaginabili',
   portabilitySectionBody:
-    'Leggera e alimentata a batterie AAA, la tazza e pratica da usare fuori casa. In macchina o in palestra prepari bevande omogenee senza attrezzi, risparmi tempo nelle pause e bevi subito una miscela perfetta.',
-  portabilitySectionCtaLabel: 'Aggiungi al carrello',
-  faqHeading: 'Domande frequenti per comprare con fiducia',
-  faqIntro: 'Risposte chiare su uso, batterie, pulizia e sicurezza del prodotto',
+    'Inserisci qui i contesti in cui il prodotto risulta comodo, trasportabile, semplice da usare o immediatamente utile.',
+  portabilitySectionCtaLabel: 'Vai all offerta',
+  faqHeading: 'Domande frequenti per acquistare con fiducia',
+  faqIntro: 'Risposte chiare su utilizzo, spedizione, resi, materiali e obiezioni principali.',
   faqItems: [
     {
-      question: 'Di quante batterie ho bisogno e sono incluse?',
+      question: 'Quanto tempo serve per iniziare a usarlo?',
       answer:
-        'La tazza usa 2-3 batterie AAA (verificare il modello). Le batterie non sono incluse per facilitare il trasporto; puoi usarne di ricaricabili per risparmiare a lungo termine.',
+        'Spiega in modo semplice come si usa, quanto e immediato il setup e se serve qualche preparazione iniziale.',
     },
     {
-      question: 'Posso mettere la tazza in lavastoviglie?',
+      question: 'Quali materiali o caratteristiche vale la pena sapere?',
       answer:
-        "La parte esterna e resistente all'acqua IP e lavabile manualmente. Si sconsiglia l'immersione completa o la lavastoviglie per non bagnare il vano batterie.",
+        'Inserisci solo dettagli verificabili su materiali, struttura, sicurezza d uso e indicazioni di manutenzione.',
     },
     {
-      question: 'Quali bevande posso mescolare senza problemi?',
+      question: 'Per chi e indicato questo prodotto?',
       answer:
-        'Caffe, latte, proteine, cioccolata, frullati leggeri e bevande istantanee. Evita miscele troppo dense o pezzi grandi per mantenere efficienza.',
+        'Chiarisci il target, i casi d uso principali e chi ne trae piu beneficio nella pratica.',
     },
     {
-      question: 'Il vetro e resistente agli sbalzi di temperatura?',
+      question: 'Come funzionano spedizione, tracking o tempi di consegna?',
       answer:
-        'Si, il vetro in borosilicato e progettato per resistere a variazioni termiche quotidiane, rendendo sicuro il passaggio da caldo a freddo.',
+        'Inserisci qui tutte le informazioni logistiche che riducono incertezza prima dell acquisto.',
     },
     {
-      question: "E silenziosa durante l'uso?",
+      question: 'Cosa succede se il prodotto non fa per me?',
       answer:
-        'Il motore ad alto RPM e progettato per potenza e rumorosita contenuta: mescola rapidamente con disturbo minimo, ideale per ufficio o casa.',
+        'Spiega garanzia, reso o rimborso in modo rassicurante ma preciso, senza claim troppo aggressivi.',
     },
   ],
-  guaranteeTitle:
-    'Prova senza rischi: 30 giorni soddisfatti o rimborsati Tazza Auto-Mescolante',
+  guaranteeTitle: 'Garanzia chiara, fiducia alta e acquisto senza stress',
   guaranteeText:
-    "Prova la tazza per 30 giorni e verifica come semplifica le tue giornate: bevande senza grumi, pronta al volo e facile da pulire. Se non migliora la tua routine ti rimborsiamo, senza domande, per darti fiducia nell'acquisto.",
+    'Qui posizioni la tua garanzia commerciale, il rimborso o la prova prodotto in modo solido e credibile.',
   reviewHeading: 'Ecco cosa dicono gli altri',
-  reviewSubheading: 'Feedback reale da clienti soddisfatti',
-  reviewVerifiedLabel: 'Acquirente Verificato',
-  reviewItems: [
-    {
-      imageSrc: '/masters/domelio/assets/9cb135a9-ef56-42b4-8c8d-8e79f5a9e457.webp',
-      author: 'Michele K.',
-      quote:
-        'Usato in campeggio e in ufficio, e davvero versatile: mischia proteine, caffe istantaneo e cacao. Leggero, robusto, rapido, ma ricordatevi le batterie AAA.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/9ebebe83-c212-410e-9af3-95c3146a4383.webp',
-      author: 'Francesco T.',
-      quote:
-        'Mischia caffe e latte senza schiuma e senza sporcare la cucina, comodo da portare.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/327216c2-64cc-445c-a022-a840af0fca48.webp',
-      author: 'Davide S.',
-      quote: 'Vale i soldi spesi.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/c6ef4cc9-22d8-4d9a-8202-44ed51fc65d3.webp',
-      author: 'Emanuele Q.',
-      quote:
-        'Mi ha salvato le mattine frenetiche: un tasto e la bevanda e pronta, trasportabile e solida. Peccato batterie non incluse.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/8eb77fa9-ecab-4521-a79a-91d674bfafa0.webp',
-      author: 'Gabriele C.',
-      quote:
-        'Perfetto in macchina durante viaggi: compatto, usa batterie AAA quindi nessun cavo ingombrante.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/31c880f6-2816-4ff8-952a-55eafddc5f70.webp',
-      author: 'Simone L.',
-      quote: 'Perfetto per proteine post-allenamento, portatile e robusto.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/d6ec321e-5da1-44a1-ad9f-c5f211aa61eb.webp',
-      author: 'Nicola Z.',
-      quote:
-        'Alleno al mattino e la uso per shakerare proteine, niente grumi e tenuta termica discreta, molto pratica per il mio ritmo.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/2dcbf603-c500-422c-b04b-b74d01505644.webp',
-      author: 'Matteo G.',
-      quote: 'Design semplice, vetro spesso, si vede il livello e miscela omogenea.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/b8e5dbf3-0b78-44ac-8bdf-3af49541d888.webp',
-      author: 'Paolo F.',
-      quote: 'Mixa velocemente, niente grumi, facile da pulire.',
-    },
-    {
-      imageSrc: '/masters/domelio/assets/ee07bc26-c290-4fdc-ac9f-1f1c998d66e8.webp',
-      author: 'Stefano N.',
-      quote:
-        "Ho provato con proteine e cacao: consistenza liscia, vetro resistente al caldo, la pulizia e rapida e l'interruttore e intuitivo.",
-    },
-    {
-      imageSrc: '/masters/domelio/assets/380ce5f9-433a-458f-94ea-24dbe63b3caf.webp',
-      author: 'Giorgio H.',
-      quote:
-        "Sono un tipo pignolo: testato con bevande fredde e calde, il vetro non ha subito crepe, l'elica a tre punte miscela uniforme senza spruzzi.",
-    },
-    {
-      imageSrc: '/masters/domelio/assets/dd57fdb8-a453-4de7-a8e2-f10f8f16dbe3.webp',
-      author: 'Enrico D.',
-      quote:
-        'Prima giravo con cucchiaio e polvere ovunque; ora miscela perfettamente, risparmio tempo e la pulizia e veloce. Consigliato a chi ama la praticita.',
-    },
-  ],
+  reviewSubheading: 'Sostituisci con feedback reali e verificabili',
+  reviewVerifiedLabel: 'Cliente',
+  reviewItems: Array.from({ length: 12 }, (_, index) => ({
+    imageSrc: createAvatarPlaceholder(
+      String(index + 1),
+      mediaAccents[index % mediaAccents.length],
+    ),
+    author: `Cliente ${index + 1}`,
+    quote:
+      'Inserisci qui una recensione reale e verificabile prima della pubblicazione della landing.',
+  })),
 }
 
 export const defaultAIGenerationForm: AIGenerationForm = {
-  productName: 'Tazza Auto-Mescolante Veloce Professionale',
-  brandName: 'Domelio',
-  productCategory: 'Tazza auto-mescolante',
+  productName: '',
+  brandName: '',
+  productCategory: '',
   productDescription:
-    'Tazza portatile auto-mescolante per caffe, proteine e bevande solubili.',
-  targetAudience:
-    'Persone impegnate che vogliono preparare bevande senza grumi in pochi secondi.',
-  painPoints:
-    'Bevande con grumi, cucchiaini da lavare, tempo perso, uso scomodo fuori casa.',
-  keyBenefits:
-    'Mescola velocemente, riduce i grumi, e portatile, facile da pulire e pratica nella routine.',
-  differentiators:
-    'Vetro borosilicato, alimentazione a batterie, design premium, uso in ufficio, auto o palestra.',
-  offerDetails:
-    'Offerta con prezzo scontato e CTA verso checkout o pagina affiliate.',
-  proofPoints:
-    'Recensioni positive, garanzia 30 giorni, utilizzo per caffe e proteine, praticita quotidiana.',
-  faqsContext:
-    'Batterie, pulizia, materiali, rumorosita, bevande compatibili, spedizione e resi.',
+    '',
+  targetAudience: '',
+  painPoints: '',
+  keyBenefits: '',
+  differentiators: '',
+  offerDetails: '',
+  proofPoints: '',
+  faqsContext: '',
   copyInstructions:
     'Scrivi in italiano, orientato conversione, tono chiaro e concreto, evita promesse mediche o non verificabili.',
 }
 
 export const defaultExportOptions: ExportOptions = {
-  fileName: 'domelio-master-clone.html',
+  fileName: 'landing-master.html',
   assetMode: 'inline',
   includeInteractiveScript: true,
 }
 
 export const templateSchema: TemplateSchema = {
-  id: 'domelio-master-clone',
-  name: 'Domelio Master Clone',
+  id: 'master-template',
+  name: 'Master Template',
   description:
-    'Genera un HTML singolo partendo dalla landing Shopify reale fornita nel pacchetto zip.',
+    'Genera un HTML singolo partendo dalla landing master reale collegata al progetto.',
   sections: [
     {
       id: 'brand',
@@ -418,7 +352,7 @@ export const templateSchema: TemplateSchema = {
       id: 'media',
       title: 'Media e proof',
       description:
-        'Carica immagini nuove e il motore le rimappa sugli slot visivi della master Domelio.',
+        'Carica immagini nuove e il motore le rimappa sugli slot visivi della master attiva.',
       fields: [
         {
           key: 'topBarAvatars',
@@ -754,8 +688,8 @@ export const templateSchema: TemplateSchema = {
 }
 
 export const assetSchema: TemplateSchema = {
-  id: 'domelio-master-assets',
-  name: 'Domelio Assets',
+  id: 'master-template-assets',
+  name: 'Master Assets',
   description: 'Logo e immagini che restano manuali nel flusso AI-first.',
   sections: [
     {
