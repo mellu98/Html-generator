@@ -113,6 +113,12 @@ function createDocument(html: string) {
   return new DOMParser().parseFromString(html, 'text/html')
 }
 
+function removeElements(document: Document, selectors: string[]) {
+  for (const selector of selectors) {
+    document.querySelectorAll(selector).forEach((element) => element.remove())
+  }
+}
+
 function setTextContent(element: Element | null | undefined, value: string) {
   if (!element) {
     return
@@ -455,7 +461,7 @@ function rewriteAssetReferences(document: Document) {
 }
 
 function cleanupMasterDocument(document: Document) {
-  for (const selector of [
+  removeElements(document, [
     'script',
     'iframe',
     'noscript',
@@ -469,9 +475,7 @@ function cleanupMasterDocument(document: Document) {
     'cart-notification',
     'shop-cart-sync',
     '#web-pixels-manager-sandbox-container',
-  ]) {
-    document.querySelectorAll(selector).forEach((element) => element.remove())
-  }
+  ])
 
   for (const link of Array.from(document.querySelectorAll('link'))) {
     const rel = link.getAttribute('rel') ?? ''
@@ -502,6 +506,126 @@ function cleanupMasterDocument(document: Document) {
   }
 
   rewriteAssetReferences(document)
+}
+
+function cleanupPreviewDocument(document: Document) {
+  removeElements(document, [
+    '.skip-to-content-link',
+    'header-drawer',
+    '.header__icons',
+    '.header__inline-menu',
+    '.search-modal',
+    'predictive-search',
+    'product-modal',
+    '.product-media-modal',
+    '.thumbnail-slider',
+    '.slider-buttons',
+    '.slider-counter',
+    '.sticky-atc',
+  ])
+
+  const previewStyle = document.createElement('style')
+  previewStyle.setAttribute('data-preview-cleanup', 'true')
+  previewStyle.textContent = `
+    html,
+    body,
+    .gradient,
+    #MainContent,
+    .shopify-section {
+      overflow-x: hidden !important;
+    }
+
+    html {
+      scroll-behavior: auto !important;
+    }
+
+    body {
+      background: #ffffff !important;
+    }
+
+    .shopify-section-group-header-group {
+      position: relative !important;
+      z-index: 1 !important;
+    }
+
+    .header-wrapper,
+    .section-header.shopify-section-group-header-group {
+      position: static !important;
+      box-shadow: none !important;
+    }
+
+    .header {
+      grid-template-columns: 1fr !important;
+      min-height: auto !important;
+      padding-top: 16px !important;
+      padding-bottom: 16px !important;
+    }
+
+    .header__heading,
+    .header__heading-link,
+    .header__heading-logo-wrapper {
+      justify-self: center !important;
+      margin-inline: auto !important;
+    }
+
+    .header__heading-logo {
+      max-width: min(220px, 42vw) !important;
+      height: auto !important;
+    }
+
+    .page-width {
+      max-width: 1280px !important;
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+
+    .product,
+    .product__info-wrapper,
+    .product__media-wrapper,
+    .product__info-container,
+    .product__media-list,
+    .grid,
+    .grid__item {
+      min-width: 0 !important;
+    }
+
+    .product__media-wrapper {
+      overflow: hidden !important;
+    }
+
+    .product__media-list {
+      margin-bottom: 0 !important;
+    }
+
+    .product__media-list .product__media-item:not(.is-active) {
+      display: none !important;
+    }
+
+    .product__media-list .product__media-item.is-active {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .product__media-list .media,
+    .product__media-list .media > * {
+      border-radius: 24px !important;
+      overflow: hidden !important;
+    }
+
+    @media screen and (min-width: 990px) {
+      .product:not(.product--no-media) .product__media-wrapper {
+        width: 54% !important;
+        max-width: 54% !important;
+      }
+
+      .product:not(.product--no-media) .product__info-wrapper.grid__item {
+        width: 46% !important;
+        max-width: 46% !important;
+        padding-left: 28px !important;
+      }
+    }
+  `
+  document.head.append(previewStyle)
 }
 
 function applyHeroContent(document: Document, data: ProjectData) {
@@ -1006,6 +1130,8 @@ export function createPreviewHtml(
   includeInteractiveScript: boolean,
 ) {
   const document = createDomelioDocument(data)
+
+  cleanupPreviewDocument(document)
 
   if (includeInteractiveScript) {
     injectOptionalScript(document)
