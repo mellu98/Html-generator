@@ -250,4 +250,27 @@ describe('exporter', () => {
     expect(html).toMatch(/>9[0-5]%</)
     expect(html).toMatch(/--percentValue:\s*9[0-5]/)
   })
+
+  it('adds contextual emojis to hero benefits when they are missing', async () => {
+    const html = await createPreviewHtml(
+      {
+        ...defaultProjectData,
+        bulletPoints: [
+          { text: 'Aiuta a rimuovere peli e pelucchi in pochi gesti' },
+          { text: 'Utile su abiti, divano e sedili auto' },
+          { text: 'Riutilizzabile: niente rotoli adesivi da ricomprare' },
+          { text: 'Si pulisce svuotando i peli raccolti nel cestino' },
+        ],
+      },
+      {
+        assetMode: 'inline',
+        includeInteractiveScript: true,
+      },
+    )
+
+    expect(html).toContain('🐾 Aiuta a rimuovere peli e pelucchi in pochi gesti')
+    expect(html).toContain('🚗 Utile su abiti, divano e sedili auto')
+    expect(html).toContain('♻️ Riutilizzabile: niente rotoli adesivi da ricomprare')
+    expect(html).toContain('🧼 Si pulisce svuotando i peli raccolti nel cestino')
+  })
 })

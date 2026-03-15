@@ -857,6 +857,44 @@ function normalizeForLeakCheck(value: string) {
     .trim()
 }
 
+const benefitEmojiMatchers = [
+  { emoji: '🧼', terms: ['puliz', 'svuot', 'cestino', 'lavab', 'igiene', 'manutenzione'] },
+  { emoji: '🐾', terms: ['peli', 'pelucchi', 'animali', 'cane', 'gatto', 'pet'] },
+  { emoji: '🚗', terms: ['auto', 'macchina', 'sedili', 'abitacolo'] },
+  { emoji: '🛋️', terms: ['divano', 'sof', 'poltrona'] },
+  { emoji: '👕', terms: ['abiti', 'vestiti', 'maglie', 'giacche', 'capi', 'tessuti'] },
+  {
+    emoji: '♻️',
+    terms: ['riutilizz', 'rotoli', 'adesivi', 'ricomprare', 'sprechi', 'usa e getta', 'risparmi'],
+  },
+  { emoji: '⚡', terms: ['rapid', 'veloc', 'subito', 'istante', 'pochi gesti'] },
+  { emoji: '🏠', terms: ['casa', 'routine', 'ordine', 'quotidian'] },
+  { emoji: '🛡️', terms: ['resistent', 'durat', 'robust', 'sicur'] },
+  { emoji: '🎒', terms: ['viaggio', 'borsa', 'portatil', 'ovunque'] },
+]
+
+const fallbackBenefitEmojis = ['✨', '⚡', '👌', '🎯']
+
+function hasLeadingEmoji(value: string) {
+  return /^\p{Extended_Pictographic}/u.test(value.trim())
+}
+
+function addBenefitEmoji(text: string, index: number) {
+  const trimmed = text.trim()
+
+  if (!trimmed || hasLeadingEmoji(trimmed)) {
+    return trimmed
+  }
+
+  const normalized = normalizeForLeakCheck(trimmed)
+  const matched =
+    benefitEmojiMatchers.find(({ terms }) =>
+      terms.some((term) => normalized.includes(term)),
+    )?.emoji ?? fallbackBenefitEmojis[index % fallbackBenefitEmojis.length]
+
+  return `${matched} ${trimmed}`
+}
+
 function firstSentence(value: string, fallback: string) {
   const normalized = value.trim()
 
@@ -989,6 +1027,11 @@ export function mergeProjectData(
     const rawList = incoming[key]
     listTarget[key] = mergeList(key, rawList)
   }
+
+  merged.bulletPoints = merged.bulletPoints.map((item, index) => ({
+    ...item,
+    text: addBenefitEmoji(item.text, index),
+  }))
 
   if (hasMasterFaqLeak(merged)) {
     merged.faqItems = buildFallbackFaqItems(merged)
