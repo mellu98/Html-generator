@@ -250,12 +250,19 @@ function App() {
 
     const updateScale = () => {
       const nextWidth = container.clientWidth
+      const nextHeight = container.clientHeight
 
-      if (!nextWidth) {
+      if (!nextWidth || !nextHeight) {
         return
       }
 
-      setPreviewScale(Math.min(1, nextWidth / PREVIEW_VIEWPORT_WIDTH))
+      setPreviewScale(
+        Math.min(
+          1,
+          nextWidth / PREVIEW_VIEWPORT_WIDTH,
+          nextHeight / PREVIEW_VIEWPORT_HEIGHT,
+        ),
+      )
     }
 
     updateScale()
@@ -264,6 +271,30 @@ function App() {
     observer.observe(container)
 
     return () => observer.disconnect()
+  }, [showPreview])
+
+  useEffect(() => {
+    if (!showPreview) {
+      return
+    }
+
+    const originalOverflow = document.body.style.overflow
+
+    document.body.style.overflow = 'hidden'
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowPreview(false)
+        setPreviewLoadState('idle')
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', handleEscape)
+    }
   }, [showPreview])
 
   useEffect(() => {
@@ -318,15 +349,19 @@ function App() {
     setPreviewReloadToken((current) => current + 1)
   }
 
+  function closePreview() {
+    setShowPreview(false)
+    setPreviewLoadState('idle')
+  }
+
   function togglePreview() {
     if (showPreview) {
-      setShowPreview(false)
-      setPreviewLoadState('idle')
+      closePreview()
       return
     }
 
-    reloadPreview()
     setShowPreview(true)
+    reloadPreview()
   }
 
   function updateScalarField(key: ProjectScalarKey, value: string | boolean) {
@@ -615,7 +650,7 @@ function App() {
         </div>
       </header>
 
-      <main className={`workspace${showPreview ? ' workspace--with-preview' : ''}`}>
+      <main className="workspace">
         <aside className="editor-column">
           <DiscoveryChatPanel
             composerValue={discoveryComposer}
@@ -801,70 +836,78 @@ function App() {
           ) : null}
         </aside>
 
-        {showPreview ? (
-          <section className="preview-column">
-            <div className="panel-card preview-card">
-              <div className="panel-card__header">
-                <div>
-                  <h2>Preview fedele all export</h2>
-                  <p>
-                    Questa iframe usa lo stesso motore dell HTML finale, quindi il
-                    clone che vedi qui e quello che esporterai.
-                  </p>
-                </div>
-                <div className="preview-card__actions">
-                  <span className="preview-meta">{projectData.projectName}</span>
-                  <span className="preview-meta">
-                    {previewLoadState === 'loading'
-                      ? 'Sto caricando...'
-                      : previewLoadState === 'ready'
-                        ? 'Preview pronta'
-                        : 'Preview idle'}
-                  </span>
-                  <button
-                    className="mini-button mini-button--ghost"
-                    type="button"
-                    onClick={reloadPreview}
-                  >
-                    {previewLoadState === 'loading' ? 'Ricarico...' : 'Ricarica preview'}
-                  </button>
-                  <button
-                    className="mini-button mini-button--ghost"
-                    type="button"
-                    onClick={() => setShowPreview(false)}
-                  >
-                    Chiudi preview
-                  </button>
-                </div>
-              </div>
+      </main>
 
-              <div className="preview-frame">
-                <div
-                  ref={previewViewportRef}
-                  className="preview-frame__viewport"
-                  style={
-                    {
-                      '--preview-scale': String(previewScale),
-                      '--preview-height': `${Math.round(
-                        PREVIEW_VIEWPORT_HEIGHT * previewScale,
-                      )}px`,
-                    } as React.CSSProperties
-                  }
+      {showPreview ? (
+        <div
+          className="preview-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-modal-title"
+          onClick={closePreview}
+        >
+          <div className="preview-modal__backdrop" />
+          <section
+            className="panel-card preview-modal__dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="panel-card__header">
+              <div>
+                <h2 id="preview-modal-title">Preview fedele all export</h2>
+                <p>
+                  Questa iframe usa lo stesso motore dell HTML finale, quindi il
+                  clone che vedi qui e quello che esporterai.
+                </p>
+              </div>
+              <div className="preview-card__actions">
+                <span className="preview-meta">{projectData.projectName}</span>
+                <span className="preview-meta">
+                  {previewLoadState === 'loading'
+                    ? 'Sto caricando...'
+                    : previewLoadState === 'ready'
+                      ? 'Preview pronta'
+                      : 'Preview idle'}
+                </span>
+                <button
+                  className="mini-button mini-button--ghost"
+                  type="button"
+                  onClick={reloadPreview}
                 >
-                  <iframe
-                    key={previewUrl || `preview-${previewReloadToken}`}
-                    className="preview-frame__iframe"
-                    src={previewUrl || 'about:blank'}
-                    sandbox="allow-scripts allow-same-origin"
-                    title="Preview landing export"
-                    onLoad={() => setPreviewLoadState('ready')}
-                  />
-                </div>
+                  {previewLoadState === 'loading' ? 'Ricarico...' : 'Ricarica preview'}
+                </button>
+                <button
+                  className="mini-button mini-button--ghost"
+                  type="button"
+                  onClick={closePreview}
+                >
+                  Chiudi preview
+                </button>
+              </div>
+            </div>
+
+            <div className="preview-frame preview-frame--modal">
+              <div
+                ref={previewViewportRef}
+                className="preview-frame__viewport preview-frame__viewport--modal"
+                style={
+                  {
+                    '--preview-scale': String(previewScale),
+                  } as React.CSSProperties
+                }
+              >
+                <iframe
+                  key={previewUrl || `preview-${previewReloadToken}`}
+                  className="preview-frame__iframe"
+                  src={previewUrl || 'about:blank'}
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Preview landing export"
+                  onLoad={() => setPreviewLoadState('ready')}
+                />
               </div>
             </div>
           </section>
-        ) : null}
-      </main>
+        </div>
+      ) : null}
     </div>
   )
 }

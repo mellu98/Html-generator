@@ -560,10 +560,13 @@
 
 .preview-frame__viewport {
   width: 100%;
-  height: var(--preview-height, 960px);
   overflow: hidden;
   border-radius: 18px;
   background: white;
+}
+
+.preview-frame__viewport--modal {
+  height: min(76vh, 960px);
 }
 
 .preview-frame__iframe {
@@ -575,6 +578,34 @@
   max-width: none;
   transform: scale(var(--preview-scale, 1));
   transform-origin: top left;
+}
+
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.preview-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 20, 13, 0.26);
+  backdrop-filter: blur(10px);
+}
+
+.preview-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(1680px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+.preview-frame--modal {
+  margin-top: 18px;
 }
 
 .sr-only {
@@ -613,6 +644,19 @@
 
   .preview-frame {
     padding: 12px;
+  }
+
+  .preview-modal {
+    padding: 10px;
+  }
+
+  .preview-modal__dialog {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .preview-frame__viewport--modal {
+    height: min(70vh, 760px);
   }
 
   .hero-card__actions,
