@@ -27,6 +27,7 @@ import {
   assignGeneratedImageToProject,
   createGeneratedImage,
   createInitialImageMessages,
+  imageAssignmentTargetLabels,
   normalizeGeneratedImage,
   normalizeImageCategory,
   prepareReferenceImage,
@@ -102,10 +103,6 @@ function App() {
   )
   const [generatedImages, setGeneratedImages] = useState<GeneratedImageItem[]>([])
   const [imageComposer, setImageComposer] = useState('')
-  const [imageSlotCursor, setImageSlotCursor] = useState({
-    benefit: 0,
-    proof: 0,
-  })
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryChatStatus>(
     initialDraft.discoveryStatus,
   )
@@ -565,12 +562,10 @@ function App() {
       projectData,
       target,
       targetImage,
-      imageSlotCursor,
     )
 
     setSaveState('saving')
-    setProjectData(assignment.projectData)
-    setImageSlotCursor(assignment.slotCursor)
+    setProjectData(assignment)
     setGeneratedImages((current) =>
       current.map((item) =>
         item.id === imageId
@@ -583,12 +578,7 @@ function App() {
     )
     setImageState({
       kind: 'generated',
-      message:
-        target === 'hero'
-          ? 'Immagine assegnata alla hero principale.'
-          : target === 'benefit'
-            ? 'Immagine assegnata a uno slot benefit detail.'
-            : 'Immagine assegnata a uno slot proof.',
+      message: `Immagine assegnata a ${imageAssignmentTargetLabels[target]}.`,
     })
   }
 
@@ -824,10 +814,6 @@ function App() {
       setImageReference(null)
       setGeneratedImages([])
       setImageComposer('')
-      setImageSlotCursor({
-        benefit: 0,
-        proof: 0,
-      })
       setDiscoveryStatus('needs_input')
       setDiscoveryState({
         kind: 'idle',

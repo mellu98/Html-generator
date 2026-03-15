@@ -35,39 +35,33 @@ describe('image-chat helpers', () => {
     )
   })
 
-  it('assigns generated images to hero, benefit and proof slots', () => {
+  it('assigns generated images to explicit gallery and section slots', () => {
     const image = createGeneratedImage('data:image/png;base64,AAAA', 'Lifestyle')
     const heroAssigned = assignGeneratedImageToProject(
       defaultProjectData,
-      'hero',
+      'hero-2',
       image,
-      {
-        benefit: 0,
-        proof: 0,
-      },
     )
 
-    expect(heroAssigned.projectData.gallery[0].src).toBe(image.src)
-    expect(heroAssigned.projectData.gallery[0].alt).toContain('hero')
+    expect(heroAssigned.gallery[1].src).toBe(image.src)
+    expect(heroAssigned.gallery[1].alt).toContain('hero 2')
 
-    const benefitAssigned = assignGeneratedImageToProject(
-      heroAssigned.projectData,
-      'benefit',
+    const detailAssigned = assignGeneratedImageToProject(
+      heroAssigned,
+      'detail-2',
       image,
-      heroAssigned.slotCursor,
     )
 
-    expect(benefitAssigned.projectData.sectionImages[0].src).toBe(image.src)
-    expect(benefitAssigned.slotCursor.benefit).toBe(1)
+    expect(detailAssigned.gallery[3].src).toBe(image.src)
+    expect(detailAssigned.gallery[3].alt).toContain('detail 2')
 
     const proofAssigned = assignGeneratedImageToProject(
-      benefitAssigned.projectData,
-      'proof',
+      detailAssigned,
+      'proof-2',
       image,
-      benefitAssigned.slotCursor,
     )
 
-    expect(proofAssigned.projectData.sectionImages[2].src).toBe(image.src)
-    expect(proofAssigned.slotCursor.proof).toBe(1)
+    expect(proofAssigned.sectionImages[3].src).toBe(image.src)
+    expect(proofAssigned.sectionImages[3].alt).toContain('proof 2')
   })
 })

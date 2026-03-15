@@ -155,7 +155,16 @@ export type ImageGenerationStatus =
   | 'needs_reference_image'
   | 'error'
 
-export type ImageAssignmentTarget = 'hero' | 'benefit' | 'proof'
+export type ImageAssignmentTarget =
+  | 'hero-1'
+  | 'hero-2'
+  | 'detail-1'
+  | 'detail-2'
+  | 'detail-3'
+  | 'benefit-1'
+  | 'benefit-2'
+  | 'proof-1'
+  | 'proof-2'
 
 export type DiscoveryMissingInput =
   | 'offerta'

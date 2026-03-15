@@ -1,4 +1,6 @@
 import {
+  imageAssignmentTargetLabels,
+  imageAssignmentTargets,
   imageCategoryListPrompt,
   imageGenerationCategories,
 } from '../lib/image-chat'
@@ -29,19 +31,7 @@ interface ImageGenerationPanelProps {
 }
 
 function assignmentLabel(value: GeneratedImageItem['assignedTo']) {
-  if (value === 'hero') {
-    return 'Assegnata a hero'
-  }
-
-  if (value === 'benefit') {
-    return 'Assegnata a benefit detail'
-  }
-
-  if (value === 'proof') {
-    return 'Assegnata a proof'
-  }
-
-  return ''
+  return value ? `Assegnata a ${imageAssignmentTargetLabels[value]}` : ''
 }
 
 export function ImageGenerationPanel({
@@ -72,8 +62,8 @@ export function ImageGenerationPanel({
             1:1 pronti per landing e Shopify.
           </p>
           <p>
-            Puoi assegnare ogni immagine generata direttamente a hero, benefit
-            detail o proof.
+            Puoi assegnare ogni immagine generata allo slot preciso che vuoi:
+            Hero 1, Hero 2, Detail, Benefit o Proof.
           </p>
         </div>
         <span className="preview-meta">
@@ -212,27 +202,16 @@ export function ImageGenerationPanel({
                   {assignedLabel ? <span className="status-chip">{assignedLabel}</span> : null}
                 </div>
                 <div className="generated-image-card__actions">
-                  <button
-                    className="mini-button mini-button--ghost"
-                    type="button"
-                    onClick={() => onAssignImage(image.id, 'hero')}
-                  >
-                    Usa come Hero
-                  </button>
-                  <button
-                    className="mini-button mini-button--ghost"
-                    type="button"
-                    onClick={() => onAssignImage(image.id, 'benefit')}
-                  >
-                    Usa come Benefit detail
-                  </button>
-                  <button
-                    className="mini-button mini-button--ghost"
-                    type="button"
-                    onClick={() => onAssignImage(image.id, 'proof')}
-                  >
-                    Usa come Proof
-                  </button>
+                  {imageAssignmentTargets.map((target) => (
+                    <button
+                      key={target.value}
+                      className="mini-button mini-button--ghost"
+                      type="button"
+                      onClick={() => onAssignImage(image.id, target.value)}
+                    >
+                      {target.label}
+                    </button>
+                  ))}
                 </div>
               </article>
             )

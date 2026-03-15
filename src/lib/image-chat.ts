@@ -16,6 +16,25 @@ export const imageGenerationCategories: ImageGenerationCategory[] = [
   'Social Proof',
 ]
 
+export const imageAssignmentTargets: Array<{
+  value: ImageAssignmentTarget
+  label: string
+}> = [
+  { value: 'hero-1', label: 'Hero 1' },
+  { value: 'hero-2', label: 'Hero 2' },
+  { value: 'detail-1', label: 'Detail 1' },
+  { value: 'detail-2', label: 'Detail 2' },
+  { value: 'detail-3', label: 'Detail 3' },
+  { value: 'benefit-1', label: 'Benefit 1' },
+  { value: 'benefit-2', label: 'Benefit 2' },
+  { value: 'proof-1', label: 'Proof 1' },
+  { value: 'proof-2', label: 'Proof 2' },
+]
+
+export const imageAssignmentTargetLabels = Object.fromEntries(
+  imageAssignmentTargets.map((item) => [item.value, item.label]),
+) as Record<ImageAssignmentTarget, string>
+
 export const imageCategoryListPrompt = [
   'Categorie disponibili:',
   '',
@@ -181,42 +200,44 @@ export function assignGeneratedImageToProject(
   projectData: ProjectData,
   target: ImageAssignmentTarget,
   image: GeneratedImageItem,
-  slotCursor: {
-    benefit: number
-    proof: number
-  },
 ) {
   const nextProjectData = structuredClone(projectData)
-  const nextCursor = { ...slotCursor }
   const altBase = nextProjectData.productTitle.trim() || nextProjectData.projectName || 'Prodotto'
+  const galleryAssignments: Partial<Record<ImageAssignmentTarget, number>> = {
+    'hero-1': 0,
+    'hero-2': 1,
+    'detail-1': 2,
+    'detail-2': 3,
+    'detail-3': 4,
+  }
+  const sectionAssignments: Partial<Record<ImageAssignmentTarget, number>> = {
+    'benefit-1': 0,
+    'benefit-2': 1,
+    'proof-1': 2,
+    'proof-2': 3,
+  }
 
-  if (target === 'hero') {
-    nextProjectData.gallery[0] = {
-      src: image.src,
-      alt: `${altBase} hero`,
+  if (target in galleryAssignments) {
+    const slotIndex = galleryAssignments[target]
+
+    if (typeof slotIndex === 'number') {
+      nextProjectData.gallery[slotIndex] = {
+        src: image.src,
+        alt: `${altBase} ${imageAssignmentTargetLabels[target].toLowerCase()}`,
+      }
     }
   }
 
-  if (target === 'benefit') {
-    const slotIndex = nextCursor.benefit % 2
-    nextProjectData.sectionImages[slotIndex] = {
-      src: image.src,
-      alt: `${altBase} benefit detail ${slotIndex + 1}`,
+  if (target in sectionAssignments) {
+    const slotIndex = sectionAssignments[target]
+
+    if (typeof slotIndex === 'number') {
+      nextProjectData.sectionImages[slotIndex] = {
+        src: image.src,
+        alt: `${altBase} ${imageAssignmentTargetLabels[target].toLowerCase()}`,
+      }
     }
-    nextCursor.benefit += 1
   }
 
-  if (target === 'proof') {
-    const slotIndex = 2 + (nextCursor.proof % 2)
-    nextProjectData.sectionImages[slotIndex] = {
-      src: image.src,
-      alt: `${altBase} proof ${slotIndex - 1}`,
-    }
-    nextCursor.proof += 1
-  }
-
-  return {
-    projectData: nextProjectData,
-    slotCursor: nextCursor,
-  }
+  return nextProjectData
 }
