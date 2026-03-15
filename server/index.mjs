@@ -52,6 +52,118 @@ function ensureList(items, fallback, maxItems) {
     }))
 }
 
+function normalizeForLeakCheck(value) {
+  return toStringValue(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function firstSentence(value, fallback) {
+  const normalized = toStringValue(value)
+
+  if (!normalized) {
+    return fallback
+  }
+
+  const match = normalized.match(/.+?[.!?](?:\s|$)/)
+
+  return match ? match[0].trim() : normalized
+}
+
+const masterFaqLeakTerms = [
+  'tazza',
+  'lavastoviglie',
+  'borosilicato',
+  'bevande',
+  'proteine',
+  'frullati',
+  'cioccolata',
+  'caffe',
+  'alto rpm',
+]
+
+function hasMasterFaqLeak(brief, faqItems) {
+  if (!Array.isArray(faqItems) || faqItems.length === 0) {
+    return true
+  }
+
+  const faqText = normalizeForLeakCheck(
+    faqItems.map((item) => `${item?.question ?? ''} ${item?.answer ?? ''}`).join(' '),
+  )
+  const contextText = normalizeForLeakCheck(
+    [
+      brief.productName,
+      brief.productCategory,
+      brief.productDescription,
+      brief.keyBenefits,
+      brief.offerDetails,
+      brief.faqsContext,
+    ].join(' '),
+  )
+
+  return masterFaqLeakTerms.some(
+    (term) => faqText.includes(term) && !contextText.includes(term),
+  )
+}
+
+function buildFallbackFaqItems(brief, currentProjectData) {
+  const productName = toStringValue(
+    brief.productName,
+    currentProjectData.productTitle || 'questo prodotto',
+  )
+  const productCategory = toStringValue(brief.productCategory, 'prodotto')
+  const targetAudience = firstSentence(
+    brief.targetAudience,
+    `E pensato per chi cerca un ${productCategory} pratico, immediato e facile da usare ogni giorno.`,
+  )
+  const useCaseAnswer = firstSentence(
+    brief.productDescription || brief.keyBenefits,
+    `${productName} e pensato per semplificare una situazione concreta della routine, con un utilizzo rapido e facile da capire fin dal primo uso.`,
+  )
+  const differentiationAnswer = firstSentence(
+    brief.differentiators || brief.offerDetails,
+    `La differenza sta soprattutto nella praticita d uso, nella semplicita del gesto e nel fatto che ti evita soluzioni piu scomode o dispersive.`,
+  )
+  const objectionsAnswer = firstSentence(
+    brief.painPoints || brief.faqsContext || brief.proofPoints,
+    `Se il tuo dubbio e capire se lo userai davvero, il punto forte e proprio questo: ti aiuta a risolvere una frizione quotidiana senza complicarti la giornata.`,
+  )
+  const shippingAnswer = [
+    toStringValue(currentProjectData.shippingAccordionText),
+    toStringValue(currentProjectData.returnsAccordionText),
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return [
+    {
+      question: `Come si usa ${productName} nella pratica?`,
+      answer: useCaseAnswer,
+    },
+    {
+      question: `Per quali situazioni e davvero utile ${productName}?`,
+      answer: differentiationAnswer,
+    },
+    {
+      question: `Ci sono cose importanti da sapere prima di acquistarlo?`,
+      answer: objectionsAnswer,
+    },
+    {
+      question: `Per chi e indicato ${productName}?`,
+      answer: targetAudience,
+    },
+    {
+      question: 'Come funzionano spedizione e resi?',
+      answer:
+        shippingAnswer ||
+        'Controlla tempi di spedizione, tracking e politica di reso nella sezione dedicata prima dell acquisto.',
+    },
+  ]
+}
+
 function loadProjectCopywriterPrompt() {
   if (!fs.existsSync(customCopywriterPromptPath)) {
     return ''
@@ -194,8 +306,9 @@ const generationSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['title', 'body'],
+        required: ['emoji', 'title', 'body'],
         properties: {
+          emoji: { type: 'string' },
           title: { type: 'string' },
           body: { type: 'string' },
         },
@@ -288,7 +401,7 @@ const discoverySchema = {
 function buildPrompt(brief, currentProjectData) {
   const projectCopywriterPrompt = loadProjectCopywriterPrompt()
   const developerSections = [
-    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Compila anche i 4 benefit card della sezione routine e le etichette della tabella comparativa, cosi la landing non eredita i testi della master. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
+    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Compila anche i 4 benefit card della sezione routine e le etichette della tabella comparativa, cosi la landing non eredita i testi della master. Per routineBenefitItems.emoji scegli tu un emoji semplice, leggibile e coerente con il beneficio. Le FAQ devono essere completamente riscritte sul prodotto attuale: non devi mai lasciare riferimenti al seed/master come tazza, bevande, lavastoviglie, borosilicato o proteine se non fanno davvero parte del brief. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
     'Questa app lavora in one-shot e non puo ricevere domande di follow-up. Se il profilo copy dice di fare domande prima di scrivere, interpreta i campi del brief come le risposte gia fornite dall utente. Se mancano dettagli, non fare domande nel tuo output: usa un copy forte ma prudente, senza inventare prove o claim non supportati.',
   ]
 
@@ -600,7 +713,12 @@ app.post('/api/generate-copy', async (req, res) => {
       portabilitySectionCtaLabel: toStringValue(parsed.portabilitySectionCtaLabel, currentProjectData.portabilitySectionCtaLabel),
       faqHeading: toStringValue(parsed.faqHeading, currentProjectData.faqHeading),
       faqIntro: toStringValue(parsed.faqIntro, currentProjectData.faqIntro),
-      faqItems: ensureList(parsed.faqItems, currentProjectData.faqItems, 5),
+      faqItems: hasMasterFaqLeak(
+        brief,
+        ensureList(parsed.faqItems, currentProjectData.faqItems, 5),
+      )
+        ? buildFallbackFaqItems(brief, currentProjectData)
+        : ensureList(parsed.faqItems, currentProjectData.faqItems, 5),
       guaranteeTitle: toStringValue(parsed.guaranteeTitle, currentProjectData.guaranteeTitle),
       guaranteeText: toStringValue(parsed.guaranteeText, currentProjectData.guaranteeText),
       reviewHeading: toStringValue(parsed.reviewHeading, currentProjectData.reviewHeading),

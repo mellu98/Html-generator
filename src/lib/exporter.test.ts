@@ -125,18 +125,22 @@ describe('exporter', () => {
         ...defaultProjectData,
         routineBenefitItems: [
           {
+            emoji: '🧥',
             title: 'Raccolta veloce',
             body: 'Passa sui tessuti e porta via peli e pelucchi in pochi gesti.',
           },
           {
+            emoji: '🧹',
             title: 'Pulizia semplice',
             body: 'Svuoti il serbatoio senza fogli adesivi da cambiare ogni volta.',
           },
           {
+            emoji: '🛋️',
             title: 'Delicato sui tessuti',
             body: 'Usalo su abiti, divani e sedili senza stressare le superfici.',
           },
           {
+            emoji: '♻️',
             title: 'Sempre pronto',
             body: 'Compatto, riutilizzabile e comodo da tenere in casa o in auto.',
           },
@@ -158,6 +162,7 @@ describe('exporter', () => {
     )
 
     expect(html).toContain('Raccolta veloce')
+    expect(html).toContain('🧥')
     expect(html).toContain('Pulizia semplice')
     expect(html).toContain('Delicato sui tessuti')
     expect(html).toContain('Sempre pronto')

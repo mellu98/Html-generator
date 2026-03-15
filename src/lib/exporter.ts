@@ -346,6 +346,7 @@ function rebuildRoutineBenefitItems(section: Element, data: ProjectData) {
       return
     }
 
+    setTextContent(card.querySelector('.pp-text-3xl'), item.emoji)
     setTextContent(card.querySelector('.pp-text-xl.pp-font-semibold'), item.title)
     setTextContent(card.querySelector('.pp-text-base'), item.body)
   })

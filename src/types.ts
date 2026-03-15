@@ -35,6 +35,7 @@ export interface ResultItem extends Record<string, string> {
 }
 
 export interface BenefitFeatureItem extends Record<string, string> {
+  emoji: string
   title: string
   body: string
 }

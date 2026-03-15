@@ -129,18 +129,22 @@ export const defaultProjectData: ProjectData = {
     'Spiega il contesto d uso ideale, i momenti della giornata in cui il prodotto aiuta e il motivo per cui risulta pratico.',
   routineBenefitItems: [
     {
+      emoji: '⚡',
       title: 'Uso rapido',
       body: 'Spiega in poche parole il vantaggio immediato che il cliente percepisce appena lo prova.',
     },
     {
+      emoji: '🧼',
       title: 'Pulizia facile',
       body: 'Rendi semplice da immaginare come si pulisce, si mantiene o si rimette a posto.',
     },
     {
+      emoji: '🧩',
       title: 'Versatilita',
       body: 'Mostra uno scenario d uso concreto in cui il prodotto risulta piu comodo delle alternative.',
     },
     {
+      emoji: '👌',
       title: 'Praticita',
       body: 'Evidenzia la comodita quotidiana che fa dire al cliente: questo mi semplifica davvero la vita.',
     },
@@ -566,6 +570,12 @@ export const templateSchema: TemplateSchema = {
           itemLabel: 'Benefit',
           defaultValue: defaultProjectData.routineBenefitItems,
           itemFields: [
+            {
+              key: 'emoji',
+              label: 'Emoji',
+              type: 'text',
+              defaultValue: '✨',
+            },
             {
               key: 'title',
               label: 'Titolo',
