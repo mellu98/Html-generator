@@ -176,6 +176,78 @@ describe('exporter', () => {
     expect(html).not.toContain('Vetro borosilicato sopporta caldo e freddo.')
   })
 
+  it('rewrites bundle cards so pricing and bundle copy do not leak from the master', async () => {
+    const html = await createPreviewHtml(
+      {
+        ...defaultProjectData,
+        salePrice: '24,95',
+        comparePrice: '49,99',
+        bundleSectionHeading: 'Scegli il set giusto e risparmia di piu',
+        bundleOffers: [
+          {
+            title: '1 pezzo',
+            ribbonLabel: '',
+            badgeText: '',
+            subtitle: 'Perfetto per provare il rullo in casa',
+            salePrice: '24,95',
+            comparePrice: '49,99',
+            benefit1: '',
+            benefit2: '',
+            benefit3: '',
+          },
+          {
+            title: '2 pezzi',
+            ribbonLabel: 'Scelta smart',
+            badgeText: '-10EUR Subito',
+            subtitle: 'Uno in casa e uno in auto, sempre pronto',
+            salePrice: '39,90',
+            comparePrice: '99,98',
+            benefit1: 'Risparmi subito sul totale',
+            benefit2: 'Perfetti per uso quotidiano',
+            benefit3: 'Comodi da tenere in due punti diversi',
+          },
+          {
+            title: '3 pezzi',
+            ribbonLabel: 'Offerta top',
+            badgeText: '-20EUR Subito',
+            subtitle: 'Il set piu conveniente per casa, auto e armadio',
+            salePrice: '54,90',
+            comparePrice: '149,97',
+            benefit1: 'Risparmi 15EUR',
+            benefit2: 'Ideali da condividere in famiglia',
+            benefit3: 'Miglior rapporto qualita prezzo',
+          },
+        ],
+      },
+      {
+        assetMode: 'inline',
+        includeInteractiveScript: true,
+      },
+    )
+
+    expect(html).toContain('Scegli il set giusto e risparmia di piu')
+    expect(html).toContain('1 pezzo')
+    expect(html).toContain('2 pezzi')
+    expect(html).toContain('3 pezzi')
+    expect(html).toContain('Scelta smart')
+    expect(html).toContain('Offerta top')
+    expect(html).toContain('€24,95')
+    expect(html).toContain('€39,90')
+    expect(html).toContain('€54,90')
+    expect(html).toContain('-10€ Subito')
+    expect(html).toContain('-20€ Subito')
+    expect(html).toContain('Comodi da tenere in due punti diversi')
+    expect(html).toContain('Ideali da condividere in famiglia')
+    expect(html).not.toContain('1 Tazza')
+    expect(html).not.toContain('2 Tazze')
+    expect(html).not.toContain('3 Tazze')
+    expect(html).not.toContain('Perfetta per provare')
+    expect(html).not.toContain("Una per casa, una per l'ufficio")
+    expect(html).not.toContain('Regalo perfetto + Prezzo migliore')
+    expect(html).not.toContain('Più scelto')
+    expect(html).not.toContain('MIGLIOR OFFERTA')
+  })
+
   it('rebuilds leaked master FAQs from current project context', async () => {
     const html = await createPreviewHtml(
       {

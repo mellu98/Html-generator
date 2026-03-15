@@ -2,6 +2,7 @@ import domelioMasterHtml from '../masters/domelio/source.html?raw'
 import { mergeProjectData } from '../schema'
 import type {
   AssetMode,
+  BundleOfferItem,
   ExportOptions,
   ExportResult,
   FaqItem,
@@ -106,7 +107,32 @@ function sanitizeLink(value: string) {
 }
 
 function normalizePrice(value: string) {
-  return value.replace(/^EUR\s*/i, '\u20AC').trim()
+  const trimmed = value.trim().replace(/^EUR\s*/i, '\u20AC').replace(/\bEUR\b/gi, '\u20AC')
+
+  if (!trimmed) {
+    return ''
+  }
+
+  if (trimmed.startsWith('\u20AC')) {
+    return trimmed
+  }
+
+  if (
+    /^[0-9]+(?:[.,][0-9]{2})?$/.test(trimmed) ||
+    /^[0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2}$/.test(trimmed)
+  ) {
+    return `\u20AC${trimmed}`
+  }
+
+  return trimmed
+}
+
+function normalizeEuroText(value: string) {
+  return value
+    .trim()
+    .replace(/EUR/gi, '\u20AC')
+    .replace(/(\d)\s*\u20AC/g, '$1\u20AC')
+    .replace(/\u20AC\s+(?=\d)/g, '\u20AC')
 }
 
 function createDocument(html: string) {
@@ -270,6 +296,169 @@ function applyGallery(document: Document, items: ImageItem[]) {
   if (firstImage) {
     stickyImages.forEach((image) => setImageSource(image, firstImage))
   }
+}
+
+function setElementVisible(element: Element | null | undefined, visible: boolean) {
+  if (!(element instanceof HTMLElement)) {
+    return
+  }
+
+  element.style.display = visible ? '' : 'none'
+}
+
+function bundleBenefitsFromOffer(offer: BundleOfferItem) {
+  return [offer.benefit1, offer.benefit2, offer.benefit3]
+    .map((item) => normalizeEuroText(item))
+    .filter(Boolean)
+}
+
+function updateRibbonLabel(element: Element, label: string) {
+  const normalizedLabel = normalizeEuroText(label)
+  const leftTriangle = element.querySelector('.triangle-left')
+  const rightTriangle = element.querySelector('.triangle-right')
+  const ownerDocument = element.ownerDocument ?? document
+
+  element.textContent = ''
+
+  if (leftTriangle) {
+    element.append(leftTriangle)
+  }
+
+  element.append(ownerDocument.createTextNode(` ${normalizedLabel} `))
+
+  if (rightTriangle) {
+    element.append(rightTriangle)
+  }
+}
+
+function rebuildBundleOffers(document: Document, data: ProjectData) {
+  const optionWrappers = Array.from(
+    document.querySelectorAll('.sp-option-wrapper'),
+  ) as HTMLElement[]
+
+  if (optionWrappers.length === 0) {
+    return
+  }
+
+  const titleContainer =
+    document.querySelector('.sp-bundle-timer')?.parentElement ??
+    findFirstByText(document, 'span', 'Compra di')
+
+  if (titleContainer) {
+    titleContainer.textContent = data.bundleSectionHeading
+  }
+
+  const ribbonTemplate = optionWrappers
+    .map((wrapper) => wrapper.querySelector('.sp-most-popular.ribbon'))
+    .find(Boolean)
+  const badgeTemplate = optionWrappers
+    .map((wrapper) => wrapper.querySelector('.sp-tag'))
+    .find(Boolean)
+  const benefitsTemplate = optionWrappers
+    .map((wrapper) => wrapper.querySelector('.sp-option-benefits'))
+    .find(Boolean)
+  const benefitRowTemplate =
+    benefitsTemplate instanceof HTMLElement
+      ? (benefitsTemplate.firstElementChild?.cloneNode(true) as HTMLElement | undefined)
+      : undefined
+
+  optionWrappers.forEach((wrapper, index) => {
+    const offer = data.bundleOffers[index] ?? data.bundleOffers.at(-1)
+
+    if (!offer) {
+      return
+    }
+
+    const optionLabel = wrapper.querySelector('.sp-bundle-option')
+    const title = wrapper.querySelector('h4')
+    const subtitle = wrapper.querySelector('.sp-bundle-info p')
+    const salePrice = wrapper.querySelector('.sp-bundle-right strong')
+    const comparePrice = wrapper.querySelector('.sp-bundle-right .sp-compare-price')
+    const infoHeader = subtitle?.previousElementSibling
+
+    setTextContent(title, offer.title)
+    setTextContent(subtitle, offer.subtitle)
+    setTextContent(salePrice, normalizePrice(offer.salePrice))
+    setTextContent(comparePrice, normalizePrice(offer.comparePrice))
+    setElementVisible(comparePrice, Boolean(offer.comparePrice.trim()))
+
+    let ribbon = wrapper.querySelector('.sp-most-popular.ribbon')
+    const ribbonLabel = offer.ribbonLabel.trim()
+
+    if (!ribbon && ribbonLabel && ribbonTemplate && wrapper.firstElementChild) {
+      ribbon = ribbonTemplate.cloneNode(true) as HTMLElement
+      wrapper.insertBefore(ribbon, wrapper.firstElementChild)
+    }
+
+    if (ribbon) {
+      if (ribbonLabel) {
+        updateRibbonLabel(ribbon, ribbonLabel)
+        setElementVisible(ribbon, true)
+      } else {
+        ribbon.remove()
+      }
+    }
+
+    let badge = wrapper.querySelector('.sp-tag')
+    const badgeText = normalizeEuroText(offer.badgeText)
+
+    if (!badge && badgeText && badgeTemplate && infoHeader) {
+      badge = badgeTemplate.cloneNode(true) as HTMLElement
+      infoHeader.append(badge)
+    }
+
+    if (badge) {
+      if (badgeText) {
+        badge.textContent = badgeText
+        setElementVisible(badge, true)
+      } else {
+        badge.remove()
+      }
+    }
+
+    const benefits = bundleBenefitsFromOffer(offer)
+    let benefitsContainer = wrapper.querySelector('.sp-option-benefits')
+
+    if (!benefits.length) {
+      benefitsContainer?.remove()
+      return
+    }
+
+    if (
+      !benefitsContainer &&
+      benefitsTemplate &&
+      optionLabel instanceof HTMLElement
+    ) {
+      benefitsContainer = benefitsTemplate.cloneNode(false) as HTMLElement
+      optionLabel.append(benefitsContainer)
+    }
+
+    if (!(benefitsContainer instanceof HTMLElement)) {
+      return
+    }
+
+    benefitsContainer.innerHTML = ''
+
+    for (const benefit of benefits) {
+      const row =
+        benefitRowTemplate?.cloneNode(true) as HTMLElement | undefined
+      const benefitRow = row ?? document.createElement('div')
+
+      if (!row) {
+        benefitRow.style.cssText =
+          'font-size:14px;color:#000000;margin-bottom:4px;display:flex;align-items:flex-start;gap:6px;'
+        const icon = document.createElement('span')
+        icon.textContent = '•'
+        icon.style.flexShrink = '0'
+        benefitRow.append(icon)
+        benefitRow.append(document.createElement('span'))
+      }
+
+      const textTarget = benefitRow.lastElementChild ?? benefitRow
+      setTextContent(textTarget, benefit)
+      benefitsContainer.append(benefitRow)
+    }
+  })
 }
 
 function rebuildFaqItems(document: Document, items: FaqItem[]) {
@@ -462,14 +651,18 @@ function sanitizeResidualSeedText(document: Document, data: ProjectData) {
     [/domelio/gi, data.brandName],
     [/tazza auto-mescolante veloce professionale/gi, data.productTitle],
     [/tazza auto-mescolante/gi, data.productTitle],
-    [/\b1\s+tazza\b/gi, '1 pezzo'],
-    [/\b2\s+tazze\b/gi, '2 pezzi'],
-    [/\b3\s+tazze\b/gi, '3 pezzi'],
-    [/perfetta per provare/gi, data.offerHighlights[0]?.text ?? 'Offerta entry level'],
+    [/\b1\s+tazza\b/gi, data.bundleOffers[0]?.title ?? '1 pezzo'],
+    [/\b2\s+tazze\b/gi, data.bundleOffers[1]?.title ?? '2 pezzi'],
+    [/\b3\s+tazze\b/gi, data.bundleOffers[2]?.title ?? '3 pezzi'],
+    [/perfetta per provare/gi, data.bundleOffers[0]?.subtitle ?? 'Offerta entry level'],
     [/una per casa,\s*una per l['’]ufficio/gi, data.offerHighlights[1]?.text ?? 'Bundle smart'],
     [/regalo perfetto \+\s*prezzo migliore/gi, data.offerHighlights[2]?.text ?? 'Offerta top'],
     [/pi[uù]\s+scelto/gi, 'Scelta smart'],
     [/miglior offerta/gi, 'Offerta top'],
+    [/una per casa,\s*una per l['’]ufficio/gi, data.bundleOffers[1]?.subtitle ?? 'Bundle smart'],
+    [/regalo perfetto \+\s*prezzo migliore/gi, data.bundleOffers[2]?.subtitle ?? 'Offerta top'],
+    [/pi[uù]\s+scelto/gi, data.bundleOffers[1]?.ribbonLabel ?? 'Scelta smart'],
+    [/miglior offerta/gi, data.bundleOffers[2]?.ribbonLabel ?? 'Offerta top'],
     [/acquirente verificato/gi, data.reviewVerifiedLabel],
     [
       /offriamo spedizione tracciata e assicurata per tutti i nostri ordini\.[\s\S]*?prima della spedizione\./gi,
@@ -812,6 +1005,7 @@ function applyProjectData(document: Document, input: ProjectData) {
   }
 
   applyHeroContent(document, data)
+  rebuildBundleOffers(document, data)
   applyGallery(document, data.gallery)
 
   data.sectionImages.forEach((item, index) => {

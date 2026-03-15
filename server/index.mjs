@@ -220,6 +220,8 @@ const generationSchema = {
     'salePrice',
     'comparePrice',
     'saveBadgeText',
+    'bundleSectionHeading',
+    'bundleOffers',
     'primaryCtaLabel',
     'topBarRatingText',
     'bulletPoints',
@@ -262,6 +264,38 @@ const generationSchema = {
     salePrice: { type: 'string' },
     comparePrice: { type: 'string' },
     saveBadgeText: { type: 'string' },
+    bundleSectionHeading: { type: 'string' },
+    bundleOffers: {
+      type: 'array',
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'title',
+          'ribbonLabel',
+          'badgeText',
+          'subtitle',
+          'salePrice',
+          'comparePrice',
+          'benefit1',
+          'benefit2',
+          'benefit3',
+        ],
+        properties: {
+          title: { type: 'string' },
+          ribbonLabel: { type: 'string' },
+          badgeText: { type: 'string' },
+          subtitle: { type: 'string' },
+          salePrice: { type: 'string' },
+          comparePrice: { type: 'string' },
+          benefit1: { type: 'string' },
+          benefit2: { type: 'string' },
+          benefit3: { type: 'string' },
+        },
+      },
+    },
     primaryCtaLabel: { type: 'string' },
     topBarRatingText: { type: 'string' },
     bulletPoints: {
@@ -401,7 +435,7 @@ const discoverySchema = {
 function buildPrompt(brief, currentProjectData) {
   const projectCopywriterPrompt = loadProjectCopywriterPrompt()
   const developerSections = [
-    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Compila anche i 4 benefit card della sezione routine e le etichette della tabella comparativa, cosi la landing non eredita i testi della master. Per routineBenefitItems.emoji scegli tu un emoji semplice, leggibile e coerente con il beneficio. Nei bulletPoints del blocco hero puoi iniziare ogni beneficio con un emoji coerente e leggibile; se non lo fai verra aggiunto automaticamente dal sistema. Le FAQ devono essere completamente riscritte sul prodotto attuale: non devi mai lasciare riferimenti al seed/master come tazza, bevande, lavastoviglie, borosilicato o proteine se non fanno davvero parte del brief. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
+    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Compila anche i 4 benefit card della sezione routine, le etichette della tabella comparativa e tutto il blocco bundle pricing, cosi la landing non eredita i testi della master. bundleOffers deve contenere 3 carte complete con titolo, ribbon alto, badge sconto, sottotitolo, prezzo, prezzo barrato e 3 mini-benefit coerenti col prodotto e con l offerta. Le cifre del bundle devono essere credibili e coerenti con salePrice, comparePrice e offerDetails: niente pricing casuale o contraddittorio. Per routineBenefitItems.emoji scegli tu un emoji semplice, leggibile e coerente con il beneficio. Nei bulletPoints del blocco hero puoi iniziare ogni beneficio con un emoji coerente e leggibile; se non lo fai verra aggiunto automaticamente dal sistema. Le FAQ devono essere completamente riscritte sul prodotto attuale: non devi mai lasciare riferimenti al seed/master come tazza, bevande, lavastoviglie, borosilicato o proteine se non fanno davvero parte del brief. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
     'Questa app lavora in one-shot e non puo ricevere domande di follow-up. Se il profilo copy dice di fare domande prima di scrivere, interpreta i campi del brief come le risposte gia fornite dall utente. Se mancano dettagli, non fare domande nel tuo output: usa un copy forte ma prudente, senza inventare prove o claim non supportati.',
   ]
 
@@ -460,6 +494,8 @@ function buildPrompt(brief, currentProjectData) {
                 salePrice: currentProjectData.salePrice,
                 comparePrice: currentProjectData.comparePrice,
                 saveBadgeText: currentProjectData.saveBadgeText,
+                bundleSectionHeading: currentProjectData.bundleSectionHeading,
+                bundleOffers: currentProjectData.bundleOffers,
                 faqCount: currentProjectData.faqItems?.length ?? 5,
                 resultsCount: currentProjectData.resultsItems?.length ?? 3,
               },
@@ -686,6 +722,8 @@ app.post('/api/generate-copy', async (req, res) => {
       salePrice: toStringValue(parsed.salePrice, currentProjectData.salePrice),
       comparePrice: toStringValue(parsed.comparePrice, currentProjectData.comparePrice),
       saveBadgeText: toStringValue(parsed.saveBadgeText, currentProjectData.saveBadgeText),
+      bundleSectionHeading: toStringValue(parsed.bundleSectionHeading, currentProjectData.bundleSectionHeading),
+      bundleOffers: ensureList(parsed.bundleOffers, currentProjectData.bundleOffers, 3),
       primaryCtaLabel: toStringValue(parsed.primaryCtaLabel, currentProjectData.primaryCtaLabel),
       ctaUrl: toStringValue(currentProjectData.ctaUrl, '#'),
       topBarRatingText: toStringValue(parsed.topBarRatingText, currentProjectData.topBarRatingText),

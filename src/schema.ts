@@ -93,6 +93,42 @@ export const defaultProjectData: ProjectData = {
   salePrice: 'EUR 29,90',
   comparePrice: 'EUR 59,90',
   saveBadgeText: '- 50%',
+  bundleSectionHeading: 'Compra di piu, risparmia di piu',
+  bundleOffers: [
+    {
+      title: '1 pezzo',
+      ribbonLabel: '',
+      badgeText: '',
+      subtitle: 'Perfetto per provare il prodotto',
+      salePrice: 'EUR 29,90',
+      comparePrice: 'EUR 59,90',
+      benefit1: '',
+      benefit2: '',
+      benefit3: '',
+    },
+    {
+      title: '2 pezzi',
+      ribbonLabel: 'Scelta smart',
+      badgeText: '-10EUR Subito',
+      subtitle: 'Piu pratico per casa e routine quotidiana',
+      salePrice: 'EUR 49,90',
+      comparePrice: 'EUR 119,80',
+      benefit1: 'Risparmi subito sul totale',
+      benefit2: 'Comodo se lo usi spesso',
+      benefit3: 'Ideale da tenere in piu punti della casa',
+    },
+    {
+      title: '3 pezzi',
+      ribbonLabel: 'Offerta top',
+      badgeText: '-20EUR Subito',
+      subtitle: 'La soluzione migliore se vuoi piu convenienza',
+      salePrice: 'EUR 69,90',
+      comparePrice: 'EUR 179,70',
+      benefit1: 'Risparmio totale piu alto',
+      benefit2: 'Scorta pronta quando serve',
+      benefit3: 'Miglior rapporto qualita prezzo',
+    },
+  ],
   primaryCtaLabel: 'Scopri l offerta',
   ctaUrl: '#offerta',
   topBarRatingText: 'Clienti soddisfatti e feedback positivi',
@@ -338,6 +374,12 @@ export const templateSchema: TemplateSchema = {
           defaultValue: defaultProjectData.saveBadgeText,
         },
         {
+          key: 'bundleSectionHeading',
+          label: 'Titolo bundle',
+          type: 'text',
+          defaultValue: defaultProjectData.bundleSectionHeading,
+        },
+        {
           key: 'primaryCtaLabel',
           label: 'CTA principale',
           type: 'text',
@@ -378,6 +420,71 @@ export const templateSchema: TemplateSchema = {
           label: 'Testo reso',
           type: 'richtext',
           defaultValue: defaultProjectData.returnsAccordionText,
+        },
+        {
+          key: 'bundleOffers',
+          label: 'Carte bundle',
+          type: 'list',
+          itemLabel: 'Offerta',
+          defaultValue: defaultProjectData.bundleOffers,
+          itemFields: [
+            {
+              key: 'title',
+              label: 'Titolo',
+              type: 'text',
+              defaultValue: '1 pezzo',
+            },
+            {
+              key: 'ribbonLabel',
+              label: 'Ribbon alto',
+              type: 'text',
+              defaultValue: '',
+            },
+            {
+              key: 'badgeText',
+              label: 'Badge sconto',
+              type: 'text',
+              defaultValue: '',
+            },
+            {
+              key: 'subtitle',
+              label: 'Sottotitolo',
+              type: 'text',
+              defaultValue: 'Nuovo sottotitolo bundle',
+            },
+            {
+              key: 'salePrice',
+              label: 'Prezzo',
+              type: 'text',
+              defaultValue: 'EUR 29,90',
+            },
+            {
+              key: 'comparePrice',
+              label: 'Prezzo barrato',
+              type: 'text',
+              defaultValue: 'EUR 59,90',
+            },
+            {
+              key: 'benefit1',
+              label: 'Benefit 1',
+              type: 'text',
+              defaultValue: '',
+            },
+            {
+              key: 'benefit2',
+              label: 'Benefit 2',
+              type: 'text',
+              defaultValue: '',
+            },
+            {
+              key: 'benefit3',
+              label: 'Benefit 3',
+              type: 'text',
+              defaultValue: '',
+            },
+          ],
+          minItems: 3,
+          maxItems: 3,
         },
       ],
     },
@@ -797,6 +904,7 @@ const listKeys: ProjectListKey[] = [
   'demoMedia',
   'bulletPoints',
   'offerHighlights',
+  'bundleOffers',
   'routineBenefitItems',
   'comparisonFeatureItems',
   'resultsItems',
@@ -875,6 +983,15 @@ const benefitEmojiMatchers = [
 
 const fallbackBenefitEmojis = ['✨', '⚡', '👌', '🎯']
 
+function ensureBundleOffers(
+  items: ProjectData['bundleOffers'],
+): ProjectData['bundleOffers'] {
+  return defaultProjectData.bundleOffers.map((fallbackItem, index) => ({
+    ...fallbackItem,
+    ...(items[index] ?? {}),
+  }))
+}
+
 function hasLeadingEmoji(value: string) {
   return /^\p{Extended_Pictographic}/u.test(value.trim())
 }
@@ -940,6 +1057,18 @@ function hasMasterFaqLeak(data: ProjectData) {
       ...data.comparisonFeatureItems.map((item) => item.label),
       data.resultsSectionHeading,
       ...data.resultsItems.flatMap((item) => [item.percent, item.text]),
+      data.bundleSectionHeading,
+      ...data.bundleOffers.flatMap((item) => [
+        item.title,
+        item.ribbonLabel,
+        item.badgeText,
+        item.subtitle,
+        item.salePrice,
+        item.comparePrice,
+        item.benefit1,
+        item.benefit2,
+        item.benefit3,
+      ]),
       data.portabilitySectionHeading,
       data.portabilitySectionBody,
       ...data.bulletPoints.map((item) => item.text),
@@ -1032,6 +1161,7 @@ export function mergeProjectData(
     ...item,
     text: addBenefitEmoji(item.text, index),
   }))
+  merged.bundleOffers = ensureBundleOffers(merged.bundleOffers)
 
   if (hasMasterFaqLeak(merged)) {
     merged.faqItems = buildFallbackFaqItems(merged)

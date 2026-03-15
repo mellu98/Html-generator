@@ -40,6 +40,18 @@ export interface BenefitFeatureItem extends Record<string, string> {
   body: string
 }
 
+export interface BundleOfferItem extends Record<string, string> {
+  title: string
+  ribbonLabel: string
+  badgeText: string
+  subtitle: string
+  salePrice: string
+  comparePrice: string
+  benefit1: string
+  benefit2: string
+  benefit3: string
+}
+
 export interface ComparisonFeatureItem extends Record<string, string> {
   label: string
 }
@@ -56,6 +68,8 @@ export interface ProjectData {
   salePrice: string
   comparePrice: string
   saveBadgeText: string
+  bundleSectionHeading: string
+  bundleOffers: BundleOfferItem[]
   primaryCtaLabel: string
   ctaUrl: string
   topBarRatingText: string
