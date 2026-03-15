@@ -315,15 +315,40 @@ function rebuildResults(document: Document, heading: Element, data: ProjectData)
     return
   }
 
+  function createResultPercentValue(rawValue: string, text: string, index: number) {
+    const normalized = rawValue.trim()
+    const exactPercentMatch = normalized.match(/^(9[0-5])%$/)
+
+    if (exactPercentMatch) {
+      return exactPercentMatch[1]
+    }
+
+    const seedSource = `${normalized}|${text}|${index}`
+    let hash = 0
+
+    for (const char of seedSource) {
+      hash = (hash * 31 + char.charCodeAt(0)) % 2147483647
+    }
+
+    return String(90 + (hash % 6))
+  }
+
   listParent.innerHTML = ''
 
   for (const item of data.resultsItems) {
     const nextItem = templateItem.cloneNode(true) as HTMLDivElement
     const percent = nextItem.querySelector('.pp-text-base.pp-font-semibold')
     const text = nextItem.querySelector('.pp-text-lg.pp-text-left')
+    const percentRing = nextItem.querySelector('.pp-bg-circular-percent') as HTMLElement | null
+    const nextPercentValue = createResultPercentValue(item.percent, item.text, listParent.children.length)
 
-    setTextContent(percent, item.percent)
+    setTextContent(percent, `${nextPercentValue}%`)
     setTextContent(text, item.text)
+
+    if (percentRing) {
+      percentRing.style.setProperty('--percentValue', nextPercentValue)
+    }
+
     listParent.append(nextItem)
   }
 }

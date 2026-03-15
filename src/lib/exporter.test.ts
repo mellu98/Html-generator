@@ -227,4 +227,27 @@ describe('exporter', () => {
     expect(html).not.toContain('Quali bevande posso mescolare senza problemi?')
     expect(html).not.toContain('Il vetro e resistente agli sbalzi di temperatura?')
   })
+
+  it('normalizes long results badges into short percentages for the circular UI', async () => {
+    const html = await createPreviewHtml(
+      {
+        ...defaultProjectData,
+        resultsItems: [
+          { percent: '1 passata', text: 'Per sistemare al volo i peli prima di uscire.' },
+          { percent: 'zero adesivi', text: 'Niente fogli da staccare e buttare ogni volta.' },
+          { percent: '1 gesto', text: 'Quando si riempie, lo svuoti senza perdere tempo.' },
+        ],
+      },
+      {
+        assetMode: 'inline',
+        includeInteractiveScript: true,
+      },
+    )
+
+    expect(html).not.toContain('1 passata')
+    expect(html).not.toContain('zero adesivi')
+    expect(html).not.toContain('1 gesto')
+    expect(html).toMatch(/>9[0-5]%</)
+    expect(html).toMatch(/--percentValue:\s*9[0-5]/)
+  })
 })
