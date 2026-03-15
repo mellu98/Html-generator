@@ -566,15 +566,6 @@ function applyHeroContent(document: Document, data: ProjectData) {
     `${'\u2605'.repeat(5)} ${data.topBarRatingText}`,
   )
 
-  const topAvatars = Array.from(document.querySelectorAll('.lm-img-bar img'))
-  topAvatars.forEach((avatar, index) => {
-    const current = data.topBarAvatars[index] ?? data.topBarAvatars.at(-1)
-
-    if (current) {
-      setImageSource(avatar, current)
-    }
-  })
-
   const productParagraphs = Array.from(
     document.querySelectorAll('.product__info-container p.pp-text-base'),
   )

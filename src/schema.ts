@@ -354,30 +354,8 @@ export const templateSchema: TemplateSchema = {
       id: 'media',
       title: 'Media e proof',
       description:
-        'Carica immagini nuove e il motore le rimappa sugli slot visivi della master attiva.',
+        'Carica immagini nuove e il motore le rimappa sugli slot visivi della master attiva, lasciando fissi gli elementi master non parametrizzati.',
       fields: [
-        {
-          key: 'topBarAvatars',
-          label: 'Avatar top bar',
-          type: 'list',
-          itemLabel: 'Avatar',
-          defaultValue: defaultProjectData.topBarAvatars,
-          itemFields: [
-            {
-              key: 'src',
-              label: 'Immagine',
-              type: 'image',
-              defaultValue: '',
-            },
-            {
-              key: 'alt',
-              label: 'Alt',
-              type: 'text',
-              defaultValue: 'Avatar',
-            },
-          ],
-          minItems: 1,
-        },
         {
           key: 'gallery',
           label: 'Gallery principale',
@@ -716,7 +694,7 @@ export const assetSchema: TemplateSchema = {
     {
       id: 'media-assets',
       title: 'Immagini',
-      description: 'Gallery, immagini sezione, GIF demo e avatar che vuoi sostituire.',
+      description: 'Gallery, immagini sezione, GIF demo e media che vuoi sostituire.',
       fields: templateSchema.sections
         .find((section) => section.id === 'media')
         ?.fields.filter((field) => field.key !== 'bulletPoints' && field.key !== 'offerHighlights' && field.key !== 'reviewItems') ?? [],
@@ -725,7 +703,6 @@ export const assetSchema: TemplateSchema = {
 }
 
 const listKeys: ProjectListKey[] = [
-  'topBarAvatars',
   'gallery',
   'sectionImages',
   'demoMedia',
