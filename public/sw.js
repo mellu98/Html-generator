@@ -1,4 +1,4 @@
-const CACHE_NAME = 'landing-master-generator-v1'
+const CACHE_NAME = 'landing-master-generator-v2'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/pwa-icon.svg', '/pwa-maskable.svg']
 
 self.addEventListener('install', (event) => {
@@ -41,6 +41,19 @@ self.addEventListener('fetch', (event) => {
           return response
         })
         .catch(() => caches.match('/index.html')),
+    )
+    return
+  }
+
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseClone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone))
+          return response
+        })
+        .catch(() => caches.match(event.request)),
     )
     return
   }
