@@ -137,6 +137,26 @@ export interface AIGenerationForm {
 
 export type DiscoveryChatRole = 'assistant' | 'user'
 
+export type ImageGenerationCategory =
+  | 'How To/Process'
+  | 'Infographic'
+  | 'Ingredients'
+  | 'Lifestyle'
+  | 'Product Photo'
+  | 'Social Proof'
+
+export type ImageChatRole = 'assistant' | 'user'
+
+export type ImageGenerationStatus =
+  | 'idle'
+  | 'loading'
+  | 'generated'
+  | 'needs_category'
+  | 'needs_reference_image'
+  | 'error'
+
+export type ImageAssignmentTarget = 'hero' | 'benefit' | 'proof'
+
 export type DiscoveryMissingInput =
   | 'offerta'
   | 'buyer_personas'
@@ -155,10 +175,32 @@ export interface DiscoveryMessage {
   content: string
 }
 
+export interface ImageReferenceAsset {
+  src: string
+  fileName: string
+  mimeType: string
+}
+
+export interface ImageChatMessage {
+  id: string
+  role: ImageChatRole
+  content: string
+}
+
+export interface GeneratedImageItem {
+  id: string
+  src: string
+  category: ImageGenerationCategory
+  assignedTo: '' | ImageAssignmentTarget
+  createdAt: string
+}
+
 export interface AIHealthResponse {
   configured: boolean
   model: string
+  imageModel: string
   projectCopyProfileConfigured: boolean
+  projectImageProfileConfigured: boolean
 }
 
 export interface GenerateCopyRequest {
@@ -184,6 +226,27 @@ export interface DiscoveryChatResponse {
   model: string
 }
 
+export interface ImageChatRequest {
+  messages: ImageChatMessage[]
+  category: string
+  referenceImage: ImageReferenceAsset | null
+  brief: Pick<
+    AIGenerationForm,
+    'productName' | 'brandName' | 'productCategory' | 'productDescription'
+  >
+}
+
+export interface ImageChatResponse {
+  assistantMessage: string
+  status: Exclude<ImageGenerationStatus, 'idle' | 'loading' | 'error'>
+  resolvedCategory: ImageGenerationCategory | ''
+  images: Array<{
+    id: string
+    src: string
+  }>
+  model: string
+}
+
 export interface PersistedDraft {
   version: number
   projectData: ProjectData
@@ -192,6 +255,9 @@ export interface PersistedDraft {
   discoveryMessages?: DiscoveryMessage[]
   discoveryStatus?: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
   discoveryMissingInputs?: DiscoveryMissingInput[]
+  imageMessages?: ImageChatMessage[]
+  imageCategory?: ImageGenerationCategory | ''
+  imageReference?: ImageReferenceAsset | null
 }
 
 export type ProjectScalarKey = {

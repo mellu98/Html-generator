@@ -4,6 +4,8 @@ import type {
   DiscoveryChatResponse,
   GenerateCopyRequest,
   GenerateCopyResponse,
+  ImageChatRequest,
+  ImageChatResponse,
 } from '../types'
 
 async function parseJsonResponse<T>(response: Response): Promise<T> {
@@ -45,4 +47,16 @@ export async function continueDiscoveryChat(payload: DiscoveryChatRequest) {
   })
 
   return await parseJsonResponse<DiscoveryChatResponse>(response)
+}
+
+export async function generateLandingImage(payload: ImageChatRequest) {
+  const response = await fetch('/api/image-chat/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return await parseJsonResponse<ImageChatResponse>(response)
 }

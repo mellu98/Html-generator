@@ -11,15 +11,17 @@ const rootDir = path.resolve(__dirname, '..')
 const distDir = path.join(rootDir, 'dist')
 const promptsDir = path.join(rootDir, 'prompts')
 const customCopywriterPromptPath = path.join(promptsDir, 'custom-copywriter.md')
+const customImageDirectorPromptPath = path.join(promptsDir, 'custom-image-director.md')
 const isDirectRun =
   typeof process.argv[1] === 'string' && path.resolve(process.argv[1]) === __filename
 
 const app = express()
 const port = Number(process.env.PORT || 8787)
 const model = process.env.OPENAI_MODEL || 'gpt-5.4'
+const imageModel = process.env.OPENAI_IMAGE_MODEL || model
 const hasBuiltFrontend = fs.existsSync(path.join(distDir, 'index.html'))
 
-app.use(express.json({ limit: '4mb' }))
+app.use(express.json({ limit: '25mb' }))
 
 function hasOpenAIKey() {
   return Boolean(process.env.OPENAI_API_KEY)
@@ -170,6 +172,73 @@ function loadProjectCopywriterPrompt() {
   }
 
   return fs.readFileSync(customCopywriterPromptPath, 'utf8').trim()
+}
+
+function loadProjectImageDirectorPrompt() {
+  if (!fs.existsSync(customImageDirectorPromptPath)) {
+    return ''
+  }
+
+  return fs.readFileSync(customImageDirectorPromptPath, 'utf8').trim()
+}
+
+const imageGenerationCategories = [
+  'How To/Process',
+  'Infographic',
+  'Ingredients',
+  'Lifestyle',
+  'Product Photo',
+  'Social Proof',
+]
+
+const imageCategoryListPrompt = [
+  'Categorie disponibili:',
+  '',
+  'How To/Process',
+  '',
+  'Infographic',
+  '',
+  'Ingredients',
+  '',
+  'Lifestyle',
+  '',
+  'Product Photo',
+  '',
+  'Social Proof',
+].join('\n')
+
+function normalizeCategoryToken(value) {
+  return toStringValue(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveImageCategory(rawValue) {
+  const trimmed = toStringValue(rawValue)
+
+  if (!trimmed) {
+    return ''
+  }
+
+  const numericIndex = Number(trimmed)
+
+  if (
+    Number.isInteger(numericIndex) &&
+    numericIndex >= 1 &&
+    numericIndex <= imageGenerationCategories.length
+  ) {
+    return imageGenerationCategories[numericIndex - 1]
+  }
+
+  const normalized = normalizeCategoryToken(trimmed)
+
+  return (
+    imageGenerationCategories.find(
+      (category) => normalizeCategoryToken(category) === normalized,
+    ) ?? ''
+  )
 }
 
 const briefFieldProperties = {
@@ -584,6 +653,94 @@ function buildDiscoveryPrompt(brief, messages) {
   ]
 }
 
+function extractResolvedImageCategory(rawCategory, messages) {
+  const directCategory = resolveImageCategory(rawCategory)
+
+  if (directCategory) {
+    return directCategory
+  }
+
+  const latestUserMessage = [...messages]
+    .reverse()
+    .find((message) => message?.role === 'user' && typeof message?.content === 'string')
+
+  return resolveImageCategory(latestUserMessage?.content ?? '')
+}
+
+function buildImageGenerationPrompt({
+  category,
+  messages,
+  brief,
+  referenceImage,
+}) {
+  const projectImageDirectorPrompt = loadProjectImageDirectorPrompt()
+  const userDirections = messages
+    .filter((message) => message?.role === 'user' && typeof message?.content === 'string')
+    .map((message) => message.content.trim())
+    .filter((content) => !(resolveImageCategory(content) && content.length <= 24))
+    .filter(Boolean)
+    .slice(-6)
+
+  const directionBlock =
+    userDirections.length > 0
+      ? userDirections.map((item, index) => `${index + 1}. ${item}`).join('\n')
+      : 'Nessuna direzione extra fornita: genera la migliore immagine conversion-focused coerente con la categoria scelta.'
+
+  const developerSections = [
+    'Genera una sola immagine finale quadrata ad alta conversione per landing page e Shopify.',
+    'Lavora in modo diretto: niente spiegazioni, niente testo fuori immagine, niente prompt tecnici visibili.',
+    'Usa l immagine caricata come riferimento esatto del prodotto. Non cambiare forma, proporzioni, logo, etichetta, colori, materiali o dettagli chiave del packaging.',
+    'Mantieni l etichetta leggibile, rimuovi lo sfondo originale se serve, evita watermark, testo casuale, rebranding o oggetti incoerenti.',
+    'Tutto il testo eventualmente presente dentro l immagine deve essere in italiano corretto, naturale e leggibile. Non usare inglese salvo brand ufficiale.',
+    'Se il packaging mostra testo inglese e serve testo in immagine, traduci e riformula in italiano corretto senza cambiarne il significato.',
+    'Non inventare claim medici, certificazioni o numeri specifici non verificabili.',
+    'Headlines max 6 parole, subheadline max 14 parole, benefit max 5 parole, review max 20 parole, step max 6 parole.',
+    `Categoria scelta: ${category}`,
+  ]
+
+  if (projectImageDirectorPrompt) {
+    developerSections.push(
+      `PROFILO VISUAL DI PROGETTO:\n${projectImageDirectorPrompt}`,
+    )
+  }
+
+  return [
+    {
+      role: 'developer',
+      content: [
+        {
+          type: 'input_text',
+          text: developerSections.join('\n\n---\n\n'),
+        },
+      ],
+    },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'input_text',
+          text: [
+            `Categoria selezionata: ${category}`,
+            `Prodotto: ${toStringValue(brief.productName, 'Prodotto e-commerce')}`,
+            `Brand: ${toStringValue(brief.brandName, 'Brand')}`,
+            `Categoria prodotto: ${toStringValue(brief.productCategory, 'Non specificata')}`,
+            `Descrizione prodotto: ${toStringValue(brief.productDescription, 'Usa il packaging e l immagine reference per dedurre il contesto.')}`,
+            '',
+            'Direzioni creative utente:',
+            directionBlock,
+            '',
+            'Genera direttamente e solo l immagine finale. Nessuna spiegazione.',
+          ].join('\n'),
+        },
+        {
+          type: 'input_image',
+          image_url: referenceImage.src,
+        },
+      ],
+    },
+  ]
+}
+
 function sanitizeDiscoveryBriefPatch(value) {
   if (typeof value !== 'object' || value === null) {
     return {}
@@ -599,11 +756,26 @@ function sanitizeDiscoveryBriefPatch(value) {
   )
 }
 
+function extractGeneratedImages(response) {
+  if (!Array.isArray(response?.output)) {
+    return []
+  }
+
+  return response.output
+    .filter((item) => item?.type === 'image_generation_call' && typeof item?.result === 'string')
+    .map((item, index) => ({
+      id: `openai-image-${Date.now()}-${index}`,
+      src: `data:image/png;base64,${item.result}`,
+    }))
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({
     configured: hasOpenAIKey(),
     model,
+    imageModel,
     projectCopyProfileConfigured: Boolean(loadProjectCopywriterPrompt()),
+    projectImageProfileConfigured: Boolean(loadProjectImageDirectorPrompt()),
   })
 })
 
@@ -669,6 +841,93 @@ app.post('/api/discovery-chat', async (req, res) => {
         error instanceof Error
           ? error.message
           : 'Errore sconosciuto durante la discovery chat.',
+    })
+  }
+})
+
+app.post('/api/image-chat/generate', async (req, res) => {
+  try {
+    if (!hasOpenAIKey()) {
+      res.status(400).json({
+        error: 'OPENAI_API_KEY non configurata. Crea un file .env o imposta la variabile su Render.',
+      })
+      return
+    }
+
+    const messages = Array.isArray(req.body?.messages) ? req.body.messages : []
+    const brief = req.body?.brief ?? {}
+    const referenceImage = req.body?.referenceImage ?? null
+    const resolvedCategory = extractResolvedImageCategory(req.body?.category, messages)
+
+    if (!resolvedCategory) {
+      res.json({
+        assistantMessage: imageCategoryListPrompt,
+        status: 'needs_category',
+        resolvedCategory: '',
+        images: [],
+        model: imageModel,
+      })
+      return
+    }
+
+    if (
+      !referenceImage ||
+      typeof referenceImage?.src !== 'string' ||
+      !referenceImage.src.trim()
+    ) {
+      res.json({
+        assistantMessage:
+          'Carica prima un immagine prodotto di riferimento, poi posso generare il visual finale.',
+        status: 'needs_reference_image',
+        resolvedCategory,
+        images: [],
+        model: imageModel,
+      })
+      return
+    }
+
+    const client = getOpenAIClient()
+    const response = await client.responses.create({
+      model: imageModel,
+      input: buildImageGenerationPrompt({
+        category: resolvedCategory,
+        messages,
+        brief,
+        referenceImage,
+      }),
+      tools: [
+        {
+          type: 'image_generation',
+          size: '1024x1024',
+          quality: 'high',
+          action: 'edit',
+          input_fidelity: 'high',
+        },
+      ],
+    })
+
+    const images = extractGeneratedImages(response)
+
+    if (images.length === 0) {
+      res.status(500).json({
+        error: 'OpenAI non ha restituito nessuna immagine generata.',
+      })
+      return
+    }
+
+    res.json({
+      assistantMessage: 'Immagine pronta.',
+      status: 'generated',
+      resolvedCategory,
+      images,
+      model: imageModel,
+    })
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Errore sconosciuto durante la generazione immagine.',
     })
   }
 })

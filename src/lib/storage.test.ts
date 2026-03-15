@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createInitialDiscoveryMessages } from './discovery'
+import { createInitialImageMessages } from './image-chat'
 import {
   defaultAIGenerationForm,
   defaultExportOptions,
@@ -19,6 +20,9 @@ describe('storage', () => {
     expect(result.projectData.projectName).toBe(defaultProjectData.projectName)
     expect(result.exportOptions.fileName).toBe(defaultExportOptions.fileName)
     expect(result.discoveryMessages).toEqual(createInitialDiscoveryMessages())
+    expect(result.imageMessages).toEqual(createInitialImageMessages())
+    expect(result.imageCategory).toBe('')
+    expect(result.imageReference).toBeNull()
     expect(result.discoveryStatus).toBe('needs_input')
   })
 
@@ -46,6 +50,9 @@ describe('storage', () => {
       ],
       discoveryStatus: 'ready_to_generate',
       discoveryMissingInputs: [],
+      imageMessages: createInitialImageMessages(),
+      imageCategory: 'Lifestyle',
+      imageReference: null,
     })
 
     const result = loadStoredDraft()
@@ -55,6 +62,7 @@ describe('storage', () => {
     expect(result.exportOptions.assetMode).toBe('url')
     expect(result.discoveryStatus).toBe('ready_to_generate')
     expect(result.discoveryMessages).toHaveLength(2)
+    expect(result.imageCategory).toBe('Lifestyle')
   })
 
   it('clears the saved draft', () => {
@@ -65,6 +73,9 @@ describe('storage', () => {
       discoveryMessages: createInitialDiscoveryMessages(),
       discoveryStatus: 'needs_input',
       discoveryMissingInputs: ['offerta', 'buyer_personas', 'obiezioni'],
+      imageMessages: createInitialImageMessages(),
+      imageCategory: '',
+      imageReference: null,
     })
 
     clearStoredDraft()

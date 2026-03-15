@@ -10,18 +10,22 @@ import {
   getDiscoveryMissingInputs,
   normalizeDiscoveryMessages,
 } from './discovery'
+import { createInitialImageMessages } from './image-chat'
 import type {
   AIGenerationForm,
   DiscoveryChatStatus,
   DiscoveryMessage,
   DiscoveryMissingInput,
   ExportOptions,
+  ImageChatMessage,
+  ImageGenerationCategory,
+  ImageReferenceAsset,
   PersistedDraft,
   ProjectData,
 } from '../types'
 
-const STORAGE_KEY = 'landing-generator/draft-v2'
-const STORAGE_VERSION = 2
+const STORAGE_KEY = 'landing-generator/draft-v3'
+const STORAGE_VERSION = 3
 
 function fallbackDraft() {
   return {
@@ -31,6 +35,9 @@ function fallbackDraft() {
     discoveryMessages: createInitialDiscoveryMessages(),
     discoveryStatus: 'needs_input' as Exclude<DiscoveryChatStatus, 'loading' | 'error'>,
     discoveryMissingInputs: getDiscoveryMissingInputs(defaultAIGenerationForm),
+    imageMessages: createInitialImageMessages(),
+    imageCategory: '' as ImageGenerationCategory | '',
+    imageReference: null as ImageReferenceAsset | null,
   }
 }
 
@@ -41,6 +48,9 @@ export function loadStoredDraft(): {
   discoveryMessages: DiscoveryMessage[]
   discoveryStatus: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
   discoveryMissingInputs: DiscoveryMissingInput[]
+  imageMessages: ImageChatMessage[]
+  imageCategory: ImageGenerationCategory | ''
+  imageReference: ImageReferenceAsset | null
 } {
   if (typeof window === 'undefined') {
     return fallbackDraft()
@@ -76,6 +86,24 @@ export function loadStoredDraft(): {
             ...defaultAIGenerationForm,
             ...parsed.aiForm,
           }),
+      imageMessages:
+        Array.isArray(parsed.imageMessages) && parsed.imageMessages.length > 0
+          ? parsed.imageMessages.filter(
+              (message): message is ImageChatMessage =>
+                typeof message?.id === 'string' &&
+                (message.role === 'assistant' || message.role === 'user') &&
+                typeof message.content === 'string',
+            )
+          : createInitialImageMessages(),
+      imageCategory:
+        typeof parsed.imageCategory === 'string' ? parsed.imageCategory : '',
+      imageReference:
+        parsed.imageReference &&
+        typeof parsed.imageReference.src === 'string' &&
+        typeof parsed.imageReference.fileName === 'string' &&
+        typeof parsed.imageReference.mimeType === 'string'
+          ? parsed.imageReference
+          : null,
     }
   } catch {
     return fallbackDraft()
@@ -89,6 +117,9 @@ export function saveStoredDraft(draft: {
   discoveryMessages: DiscoveryMessage[]
   discoveryStatus: Exclude<DiscoveryChatStatus, 'loading' | 'error'>
   discoveryMissingInputs: DiscoveryMissingInput[]
+  imageMessages: ImageChatMessage[]
+  imageCategory: ImageGenerationCategory | ''
+  imageReference: ImageReferenceAsset | null
 }) {
   if (typeof window === 'undefined') {
     return
@@ -102,6 +133,9 @@ export function saveStoredDraft(draft: {
     discoveryMessages: draft.discoveryMessages,
     discoveryStatus: draft.discoveryStatus,
     discoveryMissingInputs: draft.discoveryMissingInputs,
+    imageMessages: draft.imageMessages,
+    imageCategory: draft.imageCategory,
+    imageReference: draft.imageReference,
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))

@@ -9,14 +9,28 @@ import {
 import './App.css'
 import { AIGenerationPanel } from './components/AIGenerationPanel'
 import { DiscoveryChatPanel } from './components/DiscoveryChatPanel'
+import { ImageGenerationPanel } from './components/ImageGenerationPanel'
 import { ProjectForm } from './components/ProjectForm'
-import { continueDiscoveryChat, generateLandingCopy, getAIHealth } from './lib/ai'
+import {
+  continueDiscoveryChat,
+  generateLandingCopy,
+  generateLandingImage,
+  getAIHealth,
+} from './lib/ai'
 import {
   createInitialDiscoveryMessages,
   getDiscoveryMissingInputs,
   isDiscoveryReady,
 } from './lib/discovery'
 import { createPreviewHtml, downloadTextFile, exportLandingHtml } from './lib/exporter'
+import {
+  assignGeneratedImageToProject,
+  createGeneratedImage,
+  createInitialImageMessages,
+  normalizeGeneratedImage,
+  normalizeImageCategory,
+  prepareReferenceImage,
+} from './lib/image-chat'
 import { clearStoredDraft, loadStoredDraft, saveStoredDraft } from './lib/storage'
 import {
   assetSchema,
@@ -31,13 +45,19 @@ import type {
   AIGenerationForm,
   DiscoveryChatStatus,
   DiscoveryMessage,
+  GeneratedImageItem,
+  ImageAssignmentTarget,
+  ImageChatMessage,
+  ImageGenerationCategory,
+  ImageGenerationStatus,
+  ImageReferenceAsset,
   ProjectListKey,
   ProjectScalarKey,
 } from './types'
 
 const materialsChecklist = [
   'Flusso principale: brief prodotto + AI copy generation.',
-  'Logo e immagini restano manuali e li carichi tu dal browser.',
+  'Il logo resta manuale, le immagini puoi anche generarle con il chatbot visuale AI.',
   'L editor completo resta disponibile solo come correzione avanzata.',
   'La landing finale viene esportata in un solo HTML per WordPress.',
   'Per una nuova master mi mandi di nuovo ZIP o SingleFile + screenshot + URL.',
@@ -73,6 +93,19 @@ function App() {
   const [aiForm, setAiForm] = useState(initialDraft.aiForm)
   const [projectData, setProjectData] = useState(initialDraft.projectData)
   const [discoveryMessages, setDiscoveryMessages] = useState(initialDraft.discoveryMessages)
+  const [imageMessages, setImageMessages] = useState(initialDraft.imageMessages)
+  const [imageCategory, setImageCategory] = useState<ImageGenerationCategory | ''>(
+    initialDraft.imageCategory,
+  )
+  const [imageReference, setImageReference] = useState<ImageReferenceAsset | null>(
+    initialDraft.imageReference,
+  )
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImageItem[]>([])
+  const [imageComposer, setImageComposer] = useState('')
+  const [imageSlotCursor, setImageSlotCursor] = useState({
+    benefit: 0,
+    proof: 0,
+  })
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryChatStatus>(
     initialDraft.discoveryStatus,
   )
@@ -101,7 +134,9 @@ function App() {
   const [aiHealth, setAiHealth] = useState({
     configured: false,
     model: 'gpt-5.4',
+    imageModel: 'gpt-5.4',
     projectCopyProfileConfigured: false,
+    projectImageProfileConfigured: false,
   })
   const [aiState, setAiState] = useState<{
     kind: 'idle' | 'loading' | 'done' | 'error'
@@ -115,8 +150,16 @@ function App() {
     kind: 'idle' | 'loading' | 'error'
     message: string
   }>({
+      kind: 'idle',
+      message: '',
+  })
+  const [imageState, setImageState] = useState<{
+    kind: ImageGenerationStatus
+    message: string
+  }>({
     kind: 'idle',
-    message: '',
+    message:
+      'Carica il prodotto, scegli una categoria e lascia al chatbot la generazione visuale 1:1.',
   })
   const [exportState, setExportState] = useState<{
     kind: 'idle' | 'working' | 'done' | 'error'
@@ -170,6 +213,9 @@ function App() {
       nextDiscoveryMessages: DiscoveryMessage[],
       nextDiscoveryStatus: Extract<DiscoveryChatStatus, 'needs_input' | 'ready_to_generate'>,
       nextDiscoveryMissingInputs: typeof discoveryMissingInputs,
+      nextImageMessages: ImageChatMessage[],
+      nextImageCategory: ImageGenerationCategory | '',
+      nextImageReference: ImageReferenceAsset | null,
     ) => {
       saveStoredDraft({
         aiForm: nextAiForm,
@@ -178,6 +224,9 @@ function App() {
         discoveryMessages: nextDiscoveryMessages,
         discoveryStatus: nextDiscoveryStatus,
         discoveryMissingInputs: nextDiscoveryMissingInputs,
+        imageMessages: nextImageMessages,
+        imageCategory: nextImageCategory,
+        imageReference: nextImageReference,
       })
       setLastSavedAt(new Date())
       setSaveState('saved')
@@ -195,6 +244,9 @@ function App() {
         discoveryMessages,
         readyToGenerate ? 'ready_to_generate' : 'needs_input',
         nextMissingInputs,
+        imageMessages,
+        imageCategory,
+        imageReference,
       )
     }, 250)
 
@@ -203,6 +255,9 @@ function App() {
     aiForm,
     discoveryMessages,
     exportOptions,
+    imageCategory,
+    imageMessages,
+    imageReference,
     projectData,
     readyToGenerate,
   ])
@@ -371,6 +426,170 @@ function App() {
       ...current,
       [key]: value,
     }))
+  }
+
+  async function handleReferenceImagePick(file: File | null) {
+    if (!file) {
+      return
+    }
+
+    try {
+      const preparedImage = await prepareReferenceImage(file)
+
+      setSaveState('saving')
+      setImageReference(preparedImage)
+      setImageState({
+        kind: 'idle',
+        message: 'Immagine prodotto caricata. Ora scegli la categoria o manda la direzione visuale.',
+      })
+    } catch (error) {
+      setImageState({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Non sono riuscito a leggere l immagine prodotto.',
+      })
+    }
+  }
+
+  function handleClearReferenceImage() {
+    setSaveState('saving')
+    setImageReference(null)
+    setGeneratedImages([])
+    setImageState({
+      kind: 'idle',
+      message: 'Immagine di riferimento rimossa. Caricane una nuova per continuare.',
+    })
+  }
+
+  async function handleGenerateImage() {
+    const trimmedComposer = imageComposer.trim()
+    const resolvedTypedCategory = normalizeImageCategory(trimmedComposer)
+    const nextCategory = imageCategory || resolvedTypedCategory || ''
+    const userMessage: ImageChatMessage | null = trimmedComposer
+      ? {
+          id: `image-user-${Date.now()}`,
+          role: 'user',
+          content: trimmedComposer,
+        }
+      : null
+    const nextMessages = userMessage ? [...imageMessages, userMessage] : imageMessages
+
+    if (userMessage) {
+      setSaveState('saving')
+      setImageMessages(nextMessages)
+      setImageComposer('')
+    }
+
+    if (resolvedTypedCategory && !imageCategory) {
+      setImageCategory(resolvedTypedCategory)
+    }
+
+    setImageState({
+      kind: 'loading',
+      message: 'Sto preparando la nuova immagine visuale 1:1...',
+    })
+
+    try {
+      const response = await generateLandingImage({
+        messages: nextMessages,
+        category: nextCategory,
+        referenceImage: imageReference,
+        brief: {
+          productName: aiForm.productName,
+          brandName: aiForm.brandName,
+          productCategory: aiForm.productCategory,
+          productDescription: aiForm.productDescription,
+        },
+      })
+
+      if (response.resolvedCategory) {
+        setImageCategory(response.resolvedCategory)
+      }
+
+      if (response.assistantMessage.trim()) {
+        setImageMessages((current) => [
+          ...current,
+          {
+            id: `image-assistant-${Date.now()}`,
+            role: 'assistant',
+            content: response.assistantMessage,
+          },
+        ])
+      }
+
+      if (response.images.length > 0 && response.resolvedCategory) {
+        const resolvedCategory = response.resolvedCategory
+        const normalizedImages = await Promise.all(
+          response.images.map(async (item) =>
+            createGeneratedImage(
+              await normalizeGeneratedImage(item.src),
+              resolvedCategory,
+            ),
+          ),
+        )
+
+        setGeneratedImages((current) => [...normalizedImages, ...current].slice(0, 6))
+      }
+
+      setImageState({
+        kind: response.status,
+        message:
+          response.status === 'generated'
+            ? `Immagine pronta con ${response.model}. Ora puoi assegnarla a hero, benefit detail o proof.`
+            : response.assistantMessage,
+      })
+    } catch (error) {
+      setImageState({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Generazione immagine non riuscita.',
+      })
+    }
+  }
+
+  function handleAssignGeneratedImage(
+    imageId: string,
+    target: ImageAssignmentTarget,
+  ) {
+    const targetImage = generatedImages.find((item) => item.id === imageId)
+
+    if (!targetImage) {
+      return
+    }
+
+    const assignment = assignGeneratedImageToProject(
+      projectData,
+      target,
+      targetImage,
+      imageSlotCursor,
+    )
+
+    setSaveState('saving')
+    setProjectData(assignment.projectData)
+    setImageSlotCursor(assignment.slotCursor)
+    setGeneratedImages((current) =>
+      current.map((item) =>
+        item.id === imageId
+          ? {
+              ...item,
+              assignedTo: target,
+            }
+          : item,
+      ),
+    )
+    setImageState({
+      kind: 'generated',
+      message:
+        target === 'hero'
+          ? 'Immagine assegnata alla hero principale.'
+          : target === 'benefit'
+            ? 'Immagine assegnata a uno slot benefit detail.'
+            : 'Immagine assegnata a uno slot proof.',
+    })
   }
 
   function reloadPreview() {
@@ -600,10 +819,24 @@ function App() {
       setAiForm({ ...defaultAIGenerationForm })
       setProjectData(mergeProjectData(defaultProjectData))
       setDiscoveryMessages(createInitialDiscoveryMessages())
+      setImageMessages(createInitialImageMessages())
+      setImageCategory('')
+      setImageReference(null)
+      setGeneratedImages([])
+      setImageComposer('')
+      setImageSlotCursor({
+        benefit: 0,
+        proof: 0,
+      })
       setDiscoveryStatus('needs_input')
       setDiscoveryState({
         kind: 'idle',
         message: '',
+      })
+      setImageState({
+        kind: 'idle',
+        message:
+          'Bozza ripristinata. Carica di nuovo il prodotto e scegli una categoria per generare nuovi visual.',
       })
       setDiscoveryComposer('')
       setExportOptions({
@@ -640,8 +873,8 @@ function App() {
           <h1>Landing Master Generator</h1>
           <p>
             Ora il flusso e AI-first: tu inserisci il brief prodotto, carichi
-            logo e immagini, GPT genera il copy della landing e poi esporti un
-            HTML unico pronto per WordPress.
+            il logo, puoi generare immagini con il chatbot visuale e GPT genera
+            il copy della landing prima dell export HTML unico per WordPress.
           </p>
           <div className="hero-card__chips">
             <span className="status-chip">Auto-save {saveState}</span>
@@ -717,13 +950,35 @@ function App() {
             onToggleAdvancedEditor={() => setShowAdvancedEditor((current) => !current)}
           />
 
+          <ImageGenerationPanel
+            category={imageCategory}
+            composerValue={imageComposer}
+            configured={aiHealth.configured}
+            feedbackMessage={imageState.message}
+            generatedImages={generatedImages}
+            messages={imageMessages}
+            model={aiHealth.imageModel}
+            referenceImage={imageReference}
+            status={imageState.kind}
+            onAssignImage={handleAssignGeneratedImage}
+            onCategoryChange={(value) => {
+              setSaveState('saving')
+              setImageCategory((normalizeImageCategory(value) ?? '') as ImageGenerationCategory | '')
+            }}
+            onClearReferenceImage={handleClearReferenceImage}
+            onComposerChange={setImageComposer}
+            onGenerate={handleGenerateImage}
+            onPickReferenceImage={handleReferenceImagePick}
+          />
+
           <section className="panel-card">
             <div className="panel-card__header">
               <div>
                 <h2>Logo e immagini</h2>
                 <p>
-                  Questi restano manuali: caricali qui e il motore li mappa
-                  automaticamente negli slot della master.
+                  Il logo resta manuale; qui puoi comunque correggere o
+                  sostituire a mano gli slot immagine dopo aver usato il chatbot
+                  visuale.
                 </p>
               </div>
             </div>
