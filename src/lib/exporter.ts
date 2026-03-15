@@ -273,7 +273,9 @@ function applyGallery(document: Document, items: ImageItem[]) {
 }
 
 function rebuildFaqItems(document: Document, items: FaqItem[]) {
-  const detailsList = document.querySelector('.pagepilot-faqs .pp-flex.pp-flex-col.pp-gap-6')
+  const detailsList = Array.from(
+    document.querySelectorAll('.pagepilot-faqs .pp-flex.pp-flex-col.pp-gap-6'),
+  ).find((element) => element.querySelector('details'))
   const templateDetail = detailsList?.querySelector('details')
 
   if (!detailsList || !templateDetail) {

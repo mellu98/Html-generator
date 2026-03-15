@@ -848,6 +848,127 @@ function mergeList(
     })
 }
 
+function normalizeForLeakCheck(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function firstSentence(value: string, fallback: string) {
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return fallback
+  }
+
+  const match = normalized.match(/.+?[.!?](?:\s|$)/)
+
+  return match ? match[0].trim() : normalized
+}
+
+const masterFaqLeakTerms = [
+  'tazza',
+  'lavastoviglie',
+  'borosilicato',
+  'bevande',
+  'proteine',
+  'frullati',
+  'cioccolata',
+  'caffe',
+  'batterie aaa',
+  'alto rpm',
+]
+
+function hasMasterFaqLeak(data: ProjectData) {
+  const faqText = normalizeForLeakCheck(
+    data.faqItems.map((item) => `${item.question} ${item.answer}`).join(' '),
+  )
+  const contextText = normalizeForLeakCheck(
+    [
+      data.productTitle,
+      data.productSubtitle,
+      data.mixingSectionHeading,
+      data.mixingSectionBody,
+      data.routineSectionHeading,
+      data.routineSectionBody,
+      ...data.routineBenefitItems.flatMap((item) => [item.emoji, item.title, item.body]),
+      data.comparisonSectionHeading,
+      data.comparisonSectionBody,
+      data.comparisonColumnOwnLabel,
+      data.comparisonColumnOtherLabel,
+      ...data.comparisonFeatureItems.map((item) => item.label),
+      data.resultsSectionHeading,
+      ...data.resultsItems.flatMap((item) => [item.percent, item.text]),
+      data.portabilitySectionHeading,
+      data.portabilitySectionBody,
+      ...data.bulletPoints.map((item) => item.text),
+      ...data.offerHighlights.map((item) => item.text),
+      data.shippingAccordionText,
+      data.returnsAccordionText,
+    ].join(' '),
+  )
+
+  return masterFaqLeakTerms.some(
+    (term) => faqText.includes(term) && !contextText.includes(term),
+  )
+}
+
+function buildFallbackFaqItems(data: ProjectData) {
+  const productName = data.productTitle.trim() || data.brandName || 'questo prodotto'
+  const useCaseAnswer = firstSentence(
+    data.productSubtitle || data.mixingSectionBody,
+    `${productName} e pensato per semplificare una frizione concreta della routine in pochi gesti.`,
+  )
+  const routineAnswer = firstSentence(
+    data.routineSectionBody || data.portabilitySectionBody,
+    `Ti aiuta nelle situazioni di tutti i giorni in cui vuoi una soluzione pratica, veloce e facile da usare.`,
+  )
+  const differentiationAnswer = firstSentence(
+    data.comparisonSectionBody ||
+      data.routineBenefitItems.map((item) => item.body).join(' '),
+    `La differenza sta nella praticita d uso e nel fatto che ti evita soluzioni piu scomode o dispersive.`,
+  )
+  const reliabilityAnswer = firstSentence(
+    data.resultsItems.map((item) => item.text).join(' ') ||
+      data.bulletPoints.map((item) => item.text).join(' '),
+    `Il valore si capisce in fretta perche il beneficio principale e facile da percepire gia dai primi utilizzi.`,
+  )
+  const shippingAnswer = [
+    data.shippingAccordionText.trim(),
+    data.returnsAccordionText.trim(),
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return [
+    {
+      question: `Come si usa ${productName} nella pratica?`,
+      answer: useCaseAnswer,
+    },
+    {
+      question: `In quali situazioni rende meglio ${productName}?`,
+      answer: routineAnswer,
+    },
+    {
+      question: `Che differenza c e rispetto alle alternative piu comuni?`,
+      answer: differentiationAnswer,
+    },
+    {
+      question: `E adatto a un uso frequente?`,
+      answer: reliabilityAnswer,
+    },
+    {
+      question: 'Come funzionano spedizione e resi?',
+      answer:
+        shippingAnswer ||
+        'Controlla tempi di spedizione, tracking e politica di reso nella sezione dedicata prima dell acquisto.',
+    },
+  ]
+}
+
 export function mergeProjectData(
   incoming?: Partial<ProjectData> | null,
 ): ProjectData {
@@ -867,6 +988,10 @@ export function mergeProjectData(
   for (const key of listKeys) {
     const rawList = incoming[key]
     listTarget[key] = mergeList(key, rawList)
+  }
+
+  if (hasMasterFaqLeak(merged)) {
+    merged.faqItems = buildFallbackFaqItems(merged)
   }
 
   return merged

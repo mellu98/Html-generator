@@ -175,4 +175,56 @@ describe('exporter', () => {
     expect(html).not.toContain('Mescola in pochi secondi, risparmi tempo prezioso.')
     expect(html).not.toContain('Vetro borosilicato sopporta caldo e freddo.')
   })
+
+  it('rebuilds leaked master FAQs from current project context', async () => {
+    const html = await createPreviewHtml(
+      {
+        ...defaultProjectData,
+        productTitle: 'Pratico Rullo Leva Peli Riutilizzabile',
+        productSubtitle:
+          'Raccoglie peli e pelucchi in pochi gesti e ti evita i rotoli adesivi usa e getta.',
+        routineSectionBody:
+          'Ti aiuta a tenere in ordine vestiti, divani e sedili con un gesto rapido quando ne hai bisogno.',
+        comparisonSectionBody:
+          'La differenza sta nel fatto che lo riusi nel tempo, lo svuoti facilmente e non devi comprare ricambi adesivi ogni settimana.',
+        faqItems: [
+          {
+            question: 'Di quante batterie ho bisogno e sono incluse?',
+            answer:
+              'La tazza usa 2-3 batterie AAA (verificare il modello). Le batterie non sono incluse per facilitare il trasporto.',
+          },
+          {
+            question: 'Posso mettere la tazza in lavastoviglie?',
+            answer:
+              "La parte esterna e resistente all'acqua IP e lavabile manualmente. Si sconsiglia l'immersione completa o la lavastoviglie.",
+          },
+          {
+            question: 'Quali bevande posso mescolare senza problemi?',
+            answer:
+              'Caffe, latte, proteine, cioccolata e frullati leggeri.',
+          },
+          {
+            question: 'Il vetro e resistente agli sbalzi di temperatura?',
+            answer: 'Si, il vetro in borosilicato e progettato per resistere.',
+          },
+          {
+            question: "E silenziosa durante l'uso?",
+            answer: 'Il motore ad alto RPM e progettato per potenza e rumorosita contenuta.',
+          },
+        ],
+      },
+      {
+        assetMode: 'inline',
+        includeInteractiveScript: true,
+      },
+    )
+
+    expect(html).toContain('Come si usa Pratico Rullo Leva Peli Riutilizzabile nella pratica?')
+    expect(html).toContain('In quali situazioni rende meglio Pratico Rullo Leva Peli Riutilizzabile?')
+    expect(html).toContain('Come funzionano spedizione e resi?')
+    expect(html).not.toContain('Di quante batterie ho bisogno e sono incluse?')
+    expect(html).not.toContain('Posso mettere la tazza in lavastoviglie?')
+    expect(html).not.toContain('Quali bevande posso mescolare senza problemi?')
+    expect(html).not.toContain('Il vetro e resistente agli sbalzi di temperatura?')
+  })
 })
