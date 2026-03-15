@@ -892,17 +892,25 @@ function App() {
                 style={
                   {
                     '--preview-scale': String(previewScale),
+                    '--preview-canvas-width': `${Math.round(
+                      PREVIEW_VIEWPORT_WIDTH * previewScale,
+                    )}px`,
+                    '--preview-canvas-height': `${Math.round(
+                      PREVIEW_VIEWPORT_HEIGHT * previewScale,
+                    )}px`,
                   } as React.CSSProperties
                 }
               >
-                <iframe
-                  key={previewUrl || `preview-${previewReloadToken}`}
-                  className="preview-frame__iframe"
-                  src={previewUrl || 'about:blank'}
-                  sandbox="allow-scripts allow-same-origin"
-                  title="Preview landing export"
-                  onLoad={() => setPreviewLoadState('ready')}
-                />
+                <div className="preview-frame__canvas">
+                  <iframe
+                    key={previewUrl || `preview-${previewReloadToken}`}
+                    className="preview-frame__iframe"
+                    src={previewUrl || 'about:blank'}
+                    sandbox="allow-scripts allow-same-origin"
+                    title="Preview landing export"
+                    onLoad={() => setPreviewLoadState('ready')}
+                  />
+                </div>
               </div>
             </div>
           </section>

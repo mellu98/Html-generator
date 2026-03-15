@@ -567,9 +567,23 @@
 
 .preview-frame__viewport--modal {
   height: min(76vh, 960px);
+  padding: 12px;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.preview-frame__canvas {
+  position: relative;
+  width: var(--preview-canvas-width, 1440px);
+  height: var(--preview-canvas-height, 960px);
+  flex: 0 0 auto;
 }
 
 .preview-frame__iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
   width: 1440px;
   height: 960px;
   border: 0;
@@ -657,6 +671,7 @@
 
   .preview-frame__viewport--modal {
     height: min(70vh, 760px);
+    padding: 8px;
   }
 
   .hero-card__actions,
