@@ -52,8 +52,11 @@ describe('exporter', () => {
     vi.unstubAllGlobals()
   })
 
-  it('builds a preview HTML document with neutral starter content', () => {
-    const html = createPreviewHtml(defaultProjectData, true)
+  it('builds a preview HTML document from the same portable export pipeline', async () => {
+    const html = await createPreviewHtml(defaultProjectData, {
+      assetMode: 'inline',
+      includeInteractiveScript: true,
+    })
     const document = new DOMParser().parseFromString(html, 'text/html')
     const contentClone = document.body.cloneNode(true) as HTMLElement
 
@@ -67,12 +70,9 @@ describe('exporter', () => {
     expect(html).toContain(defaultProjectData.productTitle)
     expect(html).toContain(defaultProjectData.primaryCtaLabel)
     expect(html).not.toContain('<iframe')
-    expect(html).not.toContain('landing-generator-preview')
-    expect(html).toContain('/masters/domelio/assets/base.css')
-    expect(html).toContain('data-preview-cleanup')
-    expect(html).toContain('.product__media-list .product__media-item:not(.is-active)')
+    expect(html).toContain('data-preview-safety')
     expect(html).toContain("target.closest('a[href]')")
-    expect(html).not.toContain('Domelio_files/base.css')
+    expect(html).toContain('data:image/png;base64')
     expect(titleText).not.toContain('domelio')
     expect(titleText).not.toContain('tazza auto-mescolante')
     expect(visibleText).not.toContain('domelio')

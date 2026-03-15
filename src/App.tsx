@@ -1,6 +1,5 @@
 import {
   startTransition,
-  useDeferredValue,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -93,6 +92,7 @@ function App() {
   const [previewLoadState, setPreviewLoadState] = useState<'idle' | 'loading' | 'ready'>(
     'idle',
   )
+  const [previewHtmlDocument, setPreviewHtmlDocument] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [previewScale, setPreviewScale] = useState(1)
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
@@ -128,21 +128,12 @@ function App() {
     warnings: [],
   })
 
-  const deferredProjectData = useDeferredValue(projectData)
-  const deferredInteractive = useDeferredValue(exportOptions.includeInteractiveScript)
-  const previewHtml = useMemo(
-    () =>
-      showPreview
-        ? createPreviewHtml(deferredProjectData, deferredInteractive)
-        : '',
-    [deferredInteractive, deferredProjectData, showPreview],
-  )
   const previewDocumentHtml = useMemo(
     () =>
-      previewHtml
-        ? `${previewHtml}\n<!-- preview-reload:${previewReloadToken} -->`
+      previewHtmlDocument
+        ? `${previewHtmlDocument}\n<!-- preview-reload:${previewReloadToken} -->`
         : '',
-    [previewHtml, previewReloadToken],
+    [previewHtmlDocument, previewReloadToken],
   )
   const previewUrl = useMemo(() => {
     if (!showPreview || !previewDocumentHtml) {
@@ -236,6 +227,44 @@ function App() {
 
     return () => URL.revokeObjectURL(previewUrl)
   }, [previewUrl])
+
+  useEffect(() => {
+    if (!showPreview) {
+      return
+    }
+
+    let cancelled = false
+
+    void createPreviewHtml(projectData, {
+      assetMode: exportOptions.assetMode,
+      includeInteractiveScript: exportOptions.includeInteractiveScript,
+    })
+      .then((html) => {
+        if (cancelled) {
+          return
+        }
+
+        setPreviewHtmlDocument(html)
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+
+        setPreviewHtmlDocument('')
+        setPreviewLoadState('idle')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    exportOptions.assetMode,
+    exportOptions.includeInteractiveScript,
+    previewReloadToken,
+    projectData,
+    showPreview,
+  ])
 
   useEffect(() => {
     if (!showPreview) {
@@ -352,6 +381,7 @@ function App() {
   function closePreview() {
     setShowPreview(false)
     setPreviewLoadState('idle')
+    setPreviewHtmlDocument('')
   }
 
   function togglePreview() {

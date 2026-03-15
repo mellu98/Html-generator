@@ -508,128 +508,9 @@ function cleanupMasterDocument(document: Document) {
   rewriteAssetReferences(document)
 }
 
-function cleanupPreviewDocument(document: Document) {
-  removeElements(document, [
-    '.skip-to-content-link',
-    'header-drawer',
-    '.header__icons',
-    '.header__inline-menu',
-    '.search-modal',
-    'predictive-search',
-    'product-modal',
-    '.product-media-modal',
-    '.thumbnail-slider',
-    '.slider-buttons',
-    '.slider-counter',
-    '.sticky-atc',
-  ])
-
-  const previewStyle = document.createElement('style')
-  previewStyle.setAttribute('data-preview-cleanup', 'true')
-  previewStyle.textContent = `
-    html,
-    body,
-    .gradient,
-    #MainContent,
-    .shopify-section {
-      overflow-x: hidden !important;
-    }
-
-    html {
-      scroll-behavior: auto !important;
-    }
-
-    body {
-      background: #ffffff !important;
-    }
-
-    .shopify-section-group-header-group {
-      position: relative !important;
-      z-index: 1 !important;
-    }
-
-    .header-wrapper,
-    .section-header.shopify-section-group-header-group {
-      position: static !important;
-      box-shadow: none !important;
-    }
-
-    .header {
-      grid-template-columns: 1fr !important;
-      min-height: auto !important;
-      padding-top: 16px !important;
-      padding-bottom: 16px !important;
-    }
-
-    .header__heading,
-    .header__heading-link,
-    .header__heading-logo-wrapper {
-      justify-self: center !important;
-      margin-inline: auto !important;
-    }
-
-    .header__heading-logo {
-      max-width: min(220px, 42vw) !important;
-      height: auto !important;
-    }
-
-    .page-width {
-      max-width: 1280px !important;
-      padding-left: 24px !important;
-      padding-right: 24px !important;
-    }
-
-    .product,
-    .product__info-wrapper,
-    .product__media-wrapper,
-    .product__info-container,
-    .product__media-list,
-    .grid,
-    .grid__item {
-      min-width: 0 !important;
-    }
-
-    .product__media-wrapper {
-      overflow: hidden !important;
-    }
-
-    .product__media-list {
-      margin-bottom: 0 !important;
-    }
-
-    .product__media-list .product__media-item:not(.is-active) {
-      display: none !important;
-    }
-
-    .product__media-list .product__media-item.is-active {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .product__media-list .media,
-    .product__media-list .media > * {
-      border-radius: 24px !important;
-      overflow: hidden !important;
-    }
-
-    @media screen and (min-width: 990px) {
-      .product:not(.product--no-media) .product__media-wrapper {
-        width: 54% !important;
-        max-width: 54% !important;
-      }
-
-      .product:not(.product--no-media) .product__info-wrapper.grid__item {
-        width: 46% !important;
-        max-width: 46% !important;
-        padding-left: 28px !important;
-      }
-    }
-  `
-  document.head.append(previewStyle)
-}
-
 function injectPreviewSafetyScript(document: Document) {
   const script = document.createElement('script')
+  script.setAttribute('data-preview-safety', 'true')
 
   script.textContent = `
     document.addEventListener(
@@ -1139,6 +1020,28 @@ function serialize(document: Document) {
   return `<!DOCTYPE html>\n${document.documentElement.outerHTML}`
 }
 
+async function createPortableDocument(
+  data: ProjectData,
+  options: Pick<ExportOptions, 'assetMode' | 'includeInteractiveScript'>,
+) {
+  const normalizedData = mergeProjectData(data)
+  const warnings: string[] = []
+  const document = createDomelioDocument(normalizedData)
+
+  if (options.includeInteractiveScript) {
+    injectOptionalScript(document)
+  }
+
+  await inlineStylesheets(document, options.assetMode, warnings)
+  await inlineDomAssets(document, options.assetMode, warnings)
+
+  return {
+    document,
+    normalizedData,
+    warnings,
+  }
+}
+
 function normalizeFileName(value: string, projectName: string) {
   const fallback = `${projectName || 'landing-master'}.html`
   const safeRawValue = Array.from(value.trim() || fallback)
@@ -1172,18 +1075,12 @@ function normalizeFileName(value: string, projectName: string) {
   return base.toLowerCase().endsWith('.html') ? base : `${base}.html`
 }
 
-export function createPreviewHtml(
+export async function createPreviewHtml(
   data: ProjectData,
-  includeInteractiveScript: boolean,
+  options: Pick<ExportOptions, 'assetMode' | 'includeInteractiveScript'>,
 ) {
-  const document = createDomelioDocument(data)
-
-  cleanupPreviewDocument(document)
+  const { document } = await createPortableDocument(data, options)
   injectPreviewSafetyScript(document)
-
-  if (includeInteractiveScript) {
-    injectOptionalScript(document)
-  }
 
   return serialize(document)
 }
@@ -1192,16 +1089,7 @@ export async function exportLandingHtml(
   data: ProjectData,
   options: ExportOptions,
 ): Promise<ExportResult> {
-  const normalizedData = mergeProjectData(data)
-  const warnings: string[] = []
-  const document = createDomelioDocument(normalizedData)
-
-  if (options.includeInteractiveScript) {
-    injectOptionalScript(document)
-  }
-
-  await inlineStylesheets(document, options.assetMode, warnings)
-  await inlineDomAssets(document, options.assetMode, warnings)
+  const { document, normalizedData, warnings } = await createPortableDocument(data, options)
 
   return {
     fileName: normalizeFileName(options.fileName, normalizedData.projectName),
