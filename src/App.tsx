@@ -4,6 +4,7 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import './App.css'
@@ -43,6 +44,9 @@ const materialsChecklist = [
   'Per una nuova master mi mandi di nuovo ZIP o SingleFile + screenshot + URL.',
 ]
 
+const PREVIEW_VIEWPORT_WIDTH = 1440
+const PREVIEW_VIEWPORT_HEIGHT = 960
+
 function formatSaveTime(date: Date | null) {
   if (!date) {
     return 'in attesa del primo salvataggio'
@@ -65,6 +69,7 @@ function createDefaultFileName(projectName: string) {
 }
 
 function App() {
+  const previewViewportRef = useRef<HTMLDivElement | null>(null)
   const [initialDraft] = useState(() => loadStoredDraft())
   const [aiForm, setAiForm] = useState(initialDraft.aiForm)
   const [projectData, setProjectData] = useState(initialDraft.projectData)
@@ -89,6 +94,7 @@ function App() {
     'idle',
   )
   const [showPreview, setShowPreview] = useState(false)
+  const [previewScale, setPreviewScale] = useState(1)
   const [showAdvancedEditor, setShowAdvancedEditor] = useState(false)
   const [installPromptEvent, setInstallPromptEvent] =
     useState<BeforeInstallPromptEvent | null>(null)
@@ -230,6 +236,35 @@ function App() {
 
     return () => URL.revokeObjectURL(previewUrl)
   }, [previewUrl])
+
+  useEffect(() => {
+    if (!showPreview) {
+      return
+    }
+
+    const container = previewViewportRef.current
+
+    if (!container) {
+      return
+    }
+
+    const updateScale = () => {
+      const nextWidth = container.clientWidth
+
+      if (!nextWidth) {
+        return
+      }
+
+      setPreviewScale(Math.min(1, nextWidth / PREVIEW_VIEWPORT_WIDTH))
+    }
+
+    updateScale()
+
+    const observer = new ResizeObserver(() => updateScale())
+    observer.observe(container)
+
+    return () => observer.disconnect()
+  }, [showPreview])
 
   useEffect(() => {
     let isMounted = true
@@ -804,13 +839,27 @@ function App() {
               </div>
 
               <div className="preview-frame">
-                <iframe
-                  key={previewUrl || `preview-${previewReloadToken}`}
-                  src={previewUrl || 'about:blank'}
-                  sandbox="allow-scripts allow-same-origin"
-                  title="Preview landing export"
-                  onLoad={() => setPreviewLoadState('ready')}
-                />
+                <div
+                  ref={previewViewportRef}
+                  className="preview-frame__viewport"
+                  style={
+                    {
+                      '--preview-scale': String(previewScale),
+                      '--preview-height': `${Math.round(
+                        PREVIEW_VIEWPORT_HEIGHT * previewScale,
+                      )}px`,
+                    } as React.CSSProperties
+                  }
+                >
+                  <iframe
+                    key={previewUrl || `preview-${previewReloadToken}`}
+                    className="preview-frame__iframe"
+                    src={previewUrl || 'about:blank'}
+                    sandbox="allow-scripts allow-same-origin"
+                    title="Preview landing export"
+                    onLoad={() => setPreviewLoadState('ready')}
+                  />
+                </div>
               </div>
             </div>
           </section>
