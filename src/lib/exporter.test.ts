@@ -71,6 +71,7 @@ describe('exporter', () => {
     expect(html).toContain('/masters/domelio/assets/base.css')
     expect(html).toContain('data-preview-cleanup')
     expect(html).toContain('.product__media-list .product__media-item:not(.is-active)')
+    expect(html).toContain("target.closest('a[href]')")
     expect(html).not.toContain('Domelio_files/base.css')
     expect(titleText).not.toContain('domelio')
     expect(titleText).not.toContain('tazza auto-mescolante')

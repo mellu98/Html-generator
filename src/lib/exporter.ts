@@ -628,6 +628,53 @@ function cleanupPreviewDocument(document: Document) {
   document.head.append(previewStyle)
 }
 
+function injectPreviewSafetyScript(document: Document) {
+  const script = document.createElement('script')
+
+  script.textContent = `
+    document.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target
+
+        if (!(target instanceof Element)) {
+          return
+        }
+
+        const summary = target.closest('summary')
+        if (summary) {
+          return
+        }
+
+        const anchor = target.closest('a[href]')
+        if (anchor) {
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+
+        const button = target.closest('button')
+        if (button) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+      },
+      true,
+    )
+
+    document.addEventListener(
+      'submit',
+      (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      },
+      true,
+    )
+  `
+
+  document.body.append(script)
+}
+
 function applyHeroContent(document: Document, data: ProjectData) {
   document.querySelectorAll('.product__title h1, .product__title h2').forEach((element) => {
     element.textContent = data.productTitle
@@ -1132,6 +1179,7 @@ export function createPreviewHtml(
   const document = createDomelioDocument(data)
 
   cleanupPreviewDocument(document)
+  injectPreviewSafetyScript(document)
 
   if (includeInteractiveScript) {
     injectOptionalScript(document)

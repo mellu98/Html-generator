@@ -94,7 +94,7 @@ export const defaultProjectData: ProjectData = {
   comparePrice: 'EUR 59,90',
   saveBadgeText: '- 50%',
   primaryCtaLabel: 'Scopri l offerta',
-  ctaUrl: 'https://example.com/offerta',
+  ctaUrl: '#offerta',
   topBarRatingText: 'Clienti soddisfatti e feedback positivi',
   topBarAvatars: topBarAvatarPlaceholders,
   gallery: galleryPlaceholders,
