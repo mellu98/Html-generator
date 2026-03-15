@@ -34,6 +34,15 @@ export interface ResultItem extends Record<string, string> {
   text: string
 }
 
+export interface BenefitFeatureItem extends Record<string, string> {
+  title: string
+  body: string
+}
+
+export interface ComparisonFeatureItem extends Record<string, string> {
+  label: string
+}
+
 export interface ProjectData {
   projectName: string
   metaTitle: string
@@ -66,8 +75,12 @@ export interface ProjectData {
   mixingSectionCtaLabel: string
   routineSectionHeading: string
   routineSectionBody: string
+  routineBenefitItems: BenefitFeatureItem[]
   comparisonSectionHeading: string
   comparisonSectionBody: string
+  comparisonColumnOwnLabel: string
+  comparisonColumnOtherLabel: string
+  comparisonFeatureItems: ComparisonFeatureItem[]
   resultsSectionHeading: string
   resultsItems: ResultItem[]
   portabilitySectionHeading: string

@@ -121,8 +121,12 @@ const generationSchema = {
     'mixingSectionCtaLabel',
     'routineSectionHeading',
     'routineSectionBody',
+    'routineBenefitItems',
     'comparisonSectionHeading',
     'comparisonSectionBody',
+    'comparisonColumnOwnLabel',
+    'comparisonColumnOtherLabel',
+    'comparisonFeatureItems',
     'resultsSectionHeading',
     'resultsItems',
     'portabilitySectionHeading',
@@ -183,8 +187,37 @@ const generationSchema = {
     mixingSectionCtaLabel: { type: 'string' },
     routineSectionHeading: { type: 'string' },
     routineSectionBody: { type: 'string' },
+    routineBenefitItems: {
+      type: 'array',
+      minItems: 4,
+      maxItems: 4,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'body'],
+        properties: {
+          title: { type: 'string' },
+          body: { type: 'string' },
+        },
+      },
+    },
     comparisonSectionHeading: { type: 'string' },
     comparisonSectionBody: { type: 'string' },
+    comparisonColumnOwnLabel: { type: 'string' },
+    comparisonColumnOtherLabel: { type: 'string' },
+    comparisonFeatureItems: {
+      type: 'array',
+      minItems: 5,
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label'],
+        properties: {
+          label: { type: 'string' },
+        },
+      },
+    },
     resultsSectionHeading: { type: 'string' },
     resultsItems: {
       type: 'array',
@@ -255,7 +288,7 @@ const discoverySchema = {
 function buildPrompt(brief, currentProjectData) {
   const projectCopywriterPrompt = loadProjectCopywriterPrompt()
   const developerSections = [
-    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
+    'Sei un copywriter conversion-focused per landing e-commerce italiane. Devi compilare solo il copy della landing master, non le immagini. Rispondi esclusivamente con JSON valido che rispetta lo schema richiesto. Non inventare prove cliniche, promesse mediche, numeri falsi o testimonianze verificate non fornite. Se il brief non contiene un rating reale, usa un testo trust-safe per topBarRatingText senza numeri inventati. Per resultsItems.percent usa badge brevi tipo "3s", "24h", "1 tap" o altre micro-label realistiche, non percentuali false. Compila anche i 4 benefit card della sezione routine e le etichette della tabella comparativa, cosi la landing non eredita i testi della master. Mantieni il tono concreto, scorrevole, orientato conversione e adatto a un ecommerce WordPress basato su una master PagePilot. Tutto in italiano.',
     'Questa app lavora in one-shot e non puo ricevere domande di follow-up. Se il profilo copy dice di fare domande prima di scrivere, interpreta i campi del brief come le risposte gia fornite dall utente. Se mancano dettagli, non fare domande nel tuo output: usa un copy forte ma prudente, senza inventare prove o claim non supportati.',
   ]
 
@@ -554,8 +587,12 @@ app.post('/api/generate-copy', async (req, res) => {
       mixingSectionCtaLabel: toStringValue(parsed.mixingSectionCtaLabel, currentProjectData.mixingSectionCtaLabel),
       routineSectionHeading: toStringValue(parsed.routineSectionHeading, currentProjectData.routineSectionHeading),
       routineSectionBody: toStringValue(parsed.routineSectionBody, currentProjectData.routineSectionBody),
+      routineBenefitItems: ensureList(parsed.routineBenefitItems, currentProjectData.routineBenefitItems, 4),
       comparisonSectionHeading: toStringValue(parsed.comparisonSectionHeading, currentProjectData.comparisonSectionHeading),
       comparisonSectionBody: toStringValue(parsed.comparisonSectionBody, currentProjectData.comparisonSectionBody),
+      comparisonColumnOwnLabel: toStringValue(parsed.comparisonColumnOwnLabel, currentProjectData.comparisonColumnOwnLabel),
+      comparisonColumnOtherLabel: toStringValue(parsed.comparisonColumnOtherLabel, currentProjectData.comparisonColumnOtherLabel),
+      comparisonFeatureItems: ensureList(parsed.comparisonFeatureItems, currentProjectData.comparisonFeatureItems, 5),
       resultsSectionHeading: toStringValue(parsed.resultsSectionHeading, currentProjectData.resultsSectionHeading),
       resultsItems: ensureList(parsed.resultsItems, currentProjectData.resultsItems, 3),
       portabilitySectionHeading: toStringValue(parsed.portabilitySectionHeading, currentProjectData.portabilitySectionHeading),

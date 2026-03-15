@@ -118,4 +118,56 @@ describe('exporter', () => {
       ),
     ).toBe(true)
   })
+
+  it('replaces routine benefits and comparison labels instead of leaking master copy', async () => {
+    const html = await createPreviewHtml(
+      {
+        ...defaultProjectData,
+        routineBenefitItems: [
+          {
+            title: 'Raccolta veloce',
+            body: 'Passa sui tessuti e porta via peli e pelucchi in pochi gesti.',
+          },
+          {
+            title: 'Pulizia semplice',
+            body: 'Svuoti il serbatoio senza fogli adesivi da cambiare ogni volta.',
+          },
+          {
+            title: 'Delicato sui tessuti',
+            body: 'Usalo su abiti, divani e sedili senza stressare le superfici.',
+          },
+          {
+            title: 'Sempre pronto',
+            body: 'Compatto, riutilizzabile e comodo da tenere in casa o in auto.',
+          },
+        ],
+        comparisonColumnOwnLabel: 'Il nostro rullo',
+        comparisonColumnOtherLabel: 'Rulli classici',
+        comparisonFeatureItems: [
+          { label: 'Rimozione peli' },
+          { label: 'Riutilizzo' },
+          { label: 'Delicatezza' },
+          { label: 'Velocita d uso' },
+          { label: 'Costo nel tempo' },
+        ],
+      },
+      {
+        assetMode: 'inline',
+        includeInteractiveScript: true,
+      },
+    )
+
+    expect(html).toContain('Raccolta veloce')
+    expect(html).toContain('Pulizia semplice')
+    expect(html).toContain('Delicato sui tessuti')
+    expect(html).toContain('Sempre pronto')
+    expect(html).toContain('Il nostro rullo')
+    expect(html).toContain('Rulli classici')
+    expect(html).toContain('Rimozione peli')
+    expect(html).toContain('Riutilizzo')
+    expect(html).toContain('Delicatezza')
+    expect(html).not.toContain('La Nostra Tazza')
+    expect(html).not.toContain('Mescola in pochi secondi, risparmi tempo prezioso.')
+    expect(html).not.toContain('Vetro borosilicato sopporta caldo e freddo.')
+  })
 })

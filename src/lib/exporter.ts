@@ -127,6 +127,20 @@ function setTextContent(element: Element | null | undefined, value: string) {
   element.textContent = value
 }
 
+function getClassName(element: Element) {
+  return typeof element.className === 'string'
+    ? element.className
+    : (element.getAttribute('class') ?? '')
+}
+
+function findDescendantsByClassTokens(root: ParentNode, tokens: string[]) {
+  return Array.from(root.querySelectorAll('*')).filter((element) => {
+    const className = getClassName(element)
+
+    return tokens.every((token) => className.includes(token))
+  })
+}
+
 function setImageSource(element: Element | null, item: ImageItem) {
   if (!(element instanceof HTMLImageElement)) {
     return
@@ -310,6 +324,55 @@ function rebuildResults(document: Document, heading: Element, data: ProjectData)
     setTextContent(text, item.text)
     listParent.append(nextItem)
   }
+}
+
+function rebuildRoutineBenefitItems(section: Element, data: ProjectData) {
+  const benefitCards = findDescendantsByClassTokens(section, [
+    'pp-flex',
+    'pp-flex-col',
+    'pp-items-center',
+    'pp-justify-center',
+    'pp-text-center',
+    'pp-gap-2',
+  ]).filter((element) =>
+    element.querySelector('.pp-text-xl.pp-font-semibold') &&
+    element.querySelector('.pp-text-base'),
+  )
+
+  data.routineBenefitItems.forEach((item, index) => {
+    const card = benefitCards[index]
+
+    if (!card) {
+      return
+    }
+
+    setTextContent(card.querySelector('.pp-text-xl.pp-font-semibold'), item.title)
+    setTextContent(card.querySelector('.pp-text-base'), item.body)
+  })
+}
+
+function applyComparisonMatrix(section: Element, data: ProjectData) {
+  const headerLabels = findDescendantsByClassTokens(section, [
+    'pp-items-center',
+    'pp-justify-center',
+    'pp-text-sm',
+    'pp-font-semibold',
+    'pp-text-center',
+    'pp-break-words',
+  ]).slice(0, 2)
+
+  setTextContent(headerLabels[0] ?? null, data.comparisonColumnOwnLabel)
+  setTextContent(headerLabels[1] ?? null, data.comparisonColumnOtherLabel)
+
+  const featureLabels = Array.from(section.querySelectorAll('span')).filter((element) => {
+    const className = getClassName(element)
+
+    return className.includes('pp-text-base') && className.includes('pp-text-white')
+  })
+
+  data.comparisonFeatureItems.forEach((item, index) => {
+    setTextContent(featureLabels[index] ?? null, item.label)
+  })
 }
 
 function rebuildReviews(document: Document, data: ProjectData) {
@@ -638,6 +701,11 @@ function applySalesSections(document: Document, data: ProjectData, href: string)
   if (routineHeading) {
     setTextContent(routineHeading, data.routineSectionHeading)
     setTextContent(findFirstAfter(document, routineHeading, 'p'), data.routineSectionBody)
+    const routineSection = routineHeading.closest('.pagepilot-section')
+
+    if (routineSection) {
+      rebuildRoutineBenefitItems(routineSection, data)
+    }
   }
 
   const comparisonHeading = findFirstByText(document, 'h2', 'Cosa rende speciale')
@@ -645,6 +713,11 @@ function applySalesSections(document: Document, data: ProjectData, href: string)
   if (comparisonHeading) {
     setTextContent(comparisonHeading, data.comparisonSectionHeading)
     setTextContent(findFirstAfter(document, comparisonHeading, 'p'), data.comparisonSectionBody)
+    const comparisonSection = comparisonHeading.closest('.pagepilot-section')
+
+    if (comparisonSection) {
+      applyComparisonMatrix(comparisonSection, data)
+    }
   }
 
   const resultsHeading = findFirstByText(document, 'h2', 'Risultati visibili')

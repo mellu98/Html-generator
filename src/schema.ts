@@ -127,9 +127,36 @@ export const defaultProjectData: ProjectData = {
   routineSectionHeading: 'Mostra come il prodotto migliora la routine quotidiana',
   routineSectionBody:
     'Spiega il contesto d uso ideale, i momenti della giornata in cui il prodotto aiuta e il motivo per cui risulta pratico.',
+  routineBenefitItems: [
+    {
+      title: 'Uso rapido',
+      body: 'Spiega in poche parole il vantaggio immediato che il cliente percepisce appena lo prova.',
+    },
+    {
+      title: 'Pulizia facile',
+      body: 'Rendi semplice da immaginare come si pulisce, si mantiene o si rimette a posto.',
+    },
+    {
+      title: 'Versatilita',
+      body: 'Mostra uno scenario d uso concreto in cui il prodotto risulta piu comodo delle alternative.',
+    },
+    {
+      title: 'Praticita',
+      body: 'Evidenzia la comodita quotidiana che fa dire al cliente: questo mi semplifica davvero la vita.',
+    },
+  ],
   comparisonSectionHeading: 'Perche questa proposta convince piu delle alternative',
   comparisonSectionBody:
     'Confronta in modo concreto materiali, esperienza, comodita e valore percepito senza usare promesse non verificabili.',
+  comparisonColumnOwnLabel: 'La nostra soluzione',
+  comparisonColumnOtherLabel: 'Alternative',
+  comparisonFeatureItems: [
+    { label: 'Facilita d uso' },
+    { label: 'Pulizia' },
+    { label: 'Materiali' },
+    { label: 'Versatilita' },
+    { label: 'Costo nel tempo' },
+  ],
   resultsSectionHeading: 'Benefit chiari, veloci da capire e facili da ricordare',
   resultsItems: [
     {
@@ -533,6 +560,29 @@ export const templateSchema: TemplateSchema = {
           defaultValue: defaultProjectData.routineSectionBody,
         },
         {
+          key: 'routineBenefitItems',
+          label: 'Benefit routine',
+          type: 'list',
+          itemLabel: 'Benefit',
+          defaultValue: defaultProjectData.routineBenefitItems,
+          itemFields: [
+            {
+              key: 'title',
+              label: 'Titolo',
+              type: 'text',
+              defaultValue: 'Nuovo benefit',
+            },
+            {
+              key: 'body',
+              label: 'Testo',
+              type: 'richtext',
+              defaultValue: 'Nuovo testo benefit',
+            },
+          ],
+          minItems: 4,
+          maxItems: 4,
+        },
+        {
           key: 'comparisonSectionHeading',
           label: 'Titolo confronto',
           type: 'richtext',
@@ -543,6 +593,35 @@ export const templateSchema: TemplateSchema = {
           label: 'Testo confronto',
           type: 'richtext',
           defaultValue: defaultProjectData.comparisonSectionBody,
+        },
+        {
+          key: 'comparisonColumnOwnLabel',
+          label: 'Colonna nostra soluzione',
+          type: 'text',
+          defaultValue: defaultProjectData.comparisonColumnOwnLabel,
+        },
+        {
+          key: 'comparisonColumnOtherLabel',
+          label: 'Colonna alternative',
+          type: 'text',
+          defaultValue: defaultProjectData.comparisonColumnOtherLabel,
+        },
+        {
+          key: 'comparisonFeatureItems',
+          label: 'Righe confronto',
+          type: 'list',
+          itemLabel: 'Voce',
+          defaultValue: defaultProjectData.comparisonFeatureItems,
+          itemFields: [
+            {
+              key: 'label',
+              label: 'Etichetta',
+              type: 'text',
+              defaultValue: 'Nuova etichetta',
+            },
+          ],
+          minItems: 5,
+          maxItems: 5,
         },
         {
           key: 'resultsSectionHeading',
@@ -708,6 +787,8 @@ const listKeys: ProjectListKey[] = [
   'demoMedia',
   'bulletPoints',
   'offerHighlights',
+  'routineBenefitItems',
+  'comparisonFeatureItems',
   'resultsItems',
   'faqItems',
   'reviewItems',
